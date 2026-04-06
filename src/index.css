@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-primary: #DB2777; /* Pink-600 */
+  --color-primary-light: #FDF2F8; /* Pink-50 */
+  --color-primary-dark: #9D174D; /* Pink-800 */
+  --color-paper: #FFF5F7; /* Very light pink/white */
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-paper text-gray-900;
+  }
+  
+  h1, h2, h3, h4, .font-serif {
+    @apply font-serif;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+}
+
+/* Print Styles */
+@media print {
+  aside, header, button, .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .bg-white {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+

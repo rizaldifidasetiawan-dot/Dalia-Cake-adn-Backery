@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "ingredient": {
+      "title": "Ingredient",
+      "description": "An ingredient used in recipes, with its cost per unit.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the ingredient" },
+        "unit": { "type": "string", "description": "Unit of measurement (gr, ml, pcs, etc.)" },
+        "pricePerUnit": { "type": "number", "description": "Price per unit of measurement" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["name", "unit", "pricePerUnit"]
+    },
+    "recipe": {
+      "title": "Recipe",
+      "description": "A recipe for a bakery item or dish.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the recipe" },
+        "category": { "type": "string", "description": "Category (e.g., Bread, Cake, Pastry)" },
+        "yield": { "type": "number", "description": "How many units the recipe produces" },
+        "yieldUnit": { "type": "string", "description": "Unit for the yield (e.g., loaves, slices)" },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ingredientId": { "type": "string", "description": "ID of the ingredient" },
+              "amount": { "type": "number", "description": "Amount used in the recipe" }
+            },
+            "required": ["ingredientId", "amount"]
+          }
+        },
+        "instructions": { "type": "string", "description": "Step-by-step instructions" },
+        "otherCosts": { "type": "number", "description": "Additional costs (packaging, labor, etc.)" },
+        "markupPercent": { "type": "number", "description": "Markup percentage for selling price" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "category", "yield", "ingredients"]
+    },
+    "shoppingList": {
+      "title": "Shopping List",
+      "description": "A generated shopping list based on selected recipes.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the shopping list" },
+        "recipes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "recipeId": { "type": "string", "description": "ID of the recipe" },
+              "multiplier": { "type": "number", "description": "How many batches to make" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      }
+    },
+    "user": {
+      "title": "User",
+      "description": "App user for custom authentication.",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "staff", "kasir"] },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["username", "password", "role"]
+    },
+    "receiptSettings": {
+      "title": "Receipt Settings",
+      "description": "Settings for the cashier receipt layout.",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "footer": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/ingredients": { "schema": "ingredient", "description": "Collection of ingredients" },
+    "/recipes": { "schema": "recipe", "description": "Collection of recipes" },
+    "/shoppingLists": { "schema": "shoppingList", "description": "Collection of shopping lists" },
+    "/users": { "schema": "user", "description": "Collection of app users" },
+    "/settings": { "schema": "receiptSettings", "description": "App settings including receipt config" }
+  }
+}
