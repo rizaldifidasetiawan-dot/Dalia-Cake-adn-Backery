@@ -19,6 +19,8 @@ const HPP: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [packingCost, setPackingCost] = useState<number>(0);
   const [profitPercentage, setProfitPercentage] = useState<number>(30);
+  const [expandedRecipes, setExpandedRecipes] = useState<string[]>([]);
+  const [tempValues, setTempValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubRecipes = onSnapshot(collection(db, 'recipes'), (snapshot) => {
@@ -70,7 +72,15 @@ const HPP: React.FC = () => {
     const ingredientCost = recipe.ingredients.reduce((total, ri) => {
       const ing = ingredients.find(i => i.id === ri.ingredientId);
       if (ing) {
-        const pricePerUnit = (ing.price || 0) / (ing.baseQuantity || 1);
+        let pricePerUnit = (ing.price || 0) / (ing.baseQuantity || 1);
+        
+        // Handle unit conversion if necessary
+        const recipeUnit = ri.unit || ing.unit;
+        if (ing.unit === 'kg' && recipeUnit === 'gr') pricePerUnit /= 1000;
+        if (ing.unit === 'gr' && recipeUnit === 'kg') pricePerUnit *= 1000;
+        if (ing.unit === 'liter' && recipeUnit === 'ml') pricePerUnit /= 1000;
+        if (ing.unit === 'ml' && recipeUnit === 'liter') pricePerUnit *= 1000;
+
         return total + (pricePerUnit * ri.amount);
       }
       return total;
@@ -104,6 +114,12 @@ const HPP: React.FC = () => {
   }, 0);
 
   const pricePerPiece = totalYield > 0 ? sellingPrice / totalYield : 0;
+
+  const toggleRecipeExpand = (recipeId: string) => {
+    setExpandedRecipes(prev => 
+      prev.includes(recipeId) ? prev.filter(id => id !== recipeId) : [...prev, recipeId]
+    );
+  };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>;
 
@@ -181,12 +197,20 @@ const HPP: React.FC = () => {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-sm">Rp</span>
                     <input
                       type="text"
-                      inputMode="numeric"
-                      value={packingCost === 0 ? '' : packingCost.toString()}
+                      inputMode="decimal"
+                      value={tempValues['packingCost'] !== undefined ? tempValues['packingCost'] : (packingCost === 0 ? '' : packingCost.toString())}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setPackingCost(val === '' ? 0 : parseInt(val));
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, packingCost: val }));
+                          setPackingCost(val === '' ? 0 : parseFloat(val));
+                        }
                       }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n.packingCost;
+                        return n;
+                      })}
                       className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-xl outline-none focus:bg-white/20 transition-all font-mono"
                       placeholder="0"
                     />
@@ -198,12 +222,20 @@ const HPP: React.FC = () => {
                   <div className="relative">
                     <input
                       type="text"
-                      inputMode="numeric"
-                      value={profitPercentage === 0 ? '' : profitPercentage.toString()}
+                      inputMode="decimal"
+                      value={tempValues['profitPercentage'] !== undefined ? tempValues['profitPercentage'] : (profitPercentage === 0 ? '' : profitPercentage.toString())}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setProfitPercentage(val === '' ? 0 : parseInt(val));
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, profitPercentage: val }));
+                          setProfitPercentage(val === '' ? 0 : parseFloat(val));
+                        }
                       }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n.profitPercentage;
+                        return n;
+                      })}
                       className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl outline-none focus:bg-white/20 transition-all font-mono"
                       placeholder="0"
                     />
@@ -253,7 +285,137 @@ const HPP: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-3xl border border-gray-100 shadow-sm">
+                <div className="md:hidden space-y-4">
+                  {selectedRecipes.map((item) => {
+                    const recipe = recipes.find(r => r.id === item.recipeId);
+                    if (!recipe) return null;
+                    const hpp = calculateRecipeHPP(recipe);
+                    const hppPerUnit = hpp / (recipe.yield || 1);
+                    const suggestedPrice = hppPerUnit * (1 + (recipe.markupPercent || 0) / 100);
+                    const isExpanded = expandedRecipes.includes(recipe.id);
+
+                    return (
+                      <div key={item.recipeId} className="bg-gray-50/50 rounded-3xl p-5 border border-gray-100 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => toggleRecipeExpand(recipe.id)}
+                              className={cn(
+                                "p-2 rounded-xl transition-all",
+                                isExpanded ? "bg-primary text-white rotate-180" : "bg-white text-gray-400 shadow-sm"
+                              )}
+                            >
+                              <Plus size={16} />
+                            </button>
+                            <div>
+                              <p className="font-bold text-gray-800">{recipe.name}</p>
+                              <p className="text-[10px] text-gray-400 uppercase tracking-widest">{recipe.category}</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => removeRecipe(item.recipeId)}
+                            className="p-2 text-red-400 hover:bg-red-50 rounded-xl"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase">Jumlah (Batch)</p>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={tempValues[`mult-${item.recipeId}`] !== undefined ? tempValues[`mult-${item.recipeId}`] : (item.multiplier === 0 ? '' : item.multiplier.toString())}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(',', '.');
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  setTempValues(prev => ({ ...prev, [`mult-${item.recipeId}`]: val }));
+                                  updateMultiplier(item.recipeId, val === '' ? 0 : parseFloat(val));
+                                }
+                              }}
+                              onBlur={() => setTempValues(prev => {
+                                const n = { ...prev };
+                                delete n[`mult-${item.recipeId}`];
+                                return n;
+                              })}
+                              className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl outline-none font-bold"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase">Harga Jual / Unit</p>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">Rp</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={tempValues[`sell-${recipe.id}`] !== undefined ? tempValues[`sell-${recipe.id}`] : (recipe.sellingPrice === 0 || !recipe.sellingPrice ? '' : recipe.sellingPrice.toString())}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9]/g, '');
+                                  setTempValues(prev => ({ ...prev, [`sell-${recipe.id}`]: val }));
+                                  updateSellingPrice(recipe.id, val === '' ? 0 : parseInt(val));
+                                }}
+                                onBlur={() => setTempValues(prev => {
+                                  const n = { ...prev };
+                                  delete n[`sell-${recipe.id}`];
+                                  return n;
+                                })}
+                                className="w-full pl-7 pr-2 py-2 text-right bg-white border border-gray-100 rounded-xl outline-none font-mono font-bold text-sm"
+                                placeholder={Math.round(suggestedPrice).toString()}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-end pt-2 border-t border-gray-100">
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase">HPP / Batch</p>
+                            <p className="font-mono text-sm text-gray-600">{formatCurrency(hpp)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-bold text-primary uppercase">Subtotal</p>
+                            <p className="font-mono font-bold text-primary text-xl">
+                              {formatCurrency(hpp * item.multiplier)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden pt-4"
+                            >
+                              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-inner space-y-2">
+                                {recipe.ingredients.map((ri, idx) => {
+                                  const ing = ingredients.find(i => i.id === ri.ingredientId);
+                                  if (!ing) return null;
+                                  let pricePerUnit = (ing.price || 0) / (ing.baseQuantity || 1);
+                                  const recipeUnit = ri.unit || ing.unit;
+                                  if (ing.unit === 'kg' && recipeUnit === 'gr') pricePerUnit /= 1000;
+                                  if (ing.unit === 'gr' && recipeUnit === 'kg') pricePerUnit *= 1000;
+                                  if (ing.unit === 'liter' && recipeUnit === 'ml') pricePerUnit /= 1000;
+                                  if (ing.unit === 'ml' && recipeUnit === 'liter') pricePerUnit *= 1000;
+                                  const subtotal = pricePerUnit * ri.amount;
+                                  return (
+                                    <div key={idx} className="flex justify-between text-xs py-1 border-b border-gray-50 last:border-0">
+                                      <span className="text-gray-600">{ing.name}</span>
+                                      <span className="font-mono font-bold">{formatCurrency(subtotal)}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto rounded-3xl border border-gray-100 shadow-sm">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50/50">
@@ -272,84 +434,158 @@ const HPP: React.FC = () => {
                         const hpp = calculateRecipeHPP(recipe);
                         const hppPerUnit = hpp / (recipe.yield || 1);
                         const suggestedPrice = hppPerUnit * (1 + (recipe.markupPercent || 0) / 100);
+                        const isExpanded = expandedRecipes.includes(recipe.id);
                         
                         return (
-                          <tr key={item.recipeId} className="hover:bg-pink-50/30 transition-colors group">
-                            <td className="px-6 py-5">
-                              <div className="space-y-1">
-                                <p className="font-bold text-gray-800 group-hover:text-primary transition-colors">{recipe.name}</p>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-primary bg-primary-light px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                    {recipe.category}
-                                  </span>
-                                  <span className="text-[10px] font-medium text-gray-400">
-                                    Yield: {recipe.yield} unit
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex items-center justify-center">
-                                <div className="relative group/input">
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={item.multiplier === 0 ? '' : item.multiplier.toString()}
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(',', '.');
-                                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                        updateMultiplier(item.recipeId, val === '' ? 0 : parseFloat(val));
-                                      }
-                                    }}
-                                    className="w-20 px-3 py-2 text-center bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-bold transition-all"
-                                  />
-                                  <div className="absolute -top-2 -right-2 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover/input:opacity-100 transition-opacity">
-                                    Edit
+                          <React.Fragment key={item.recipeId}>
+                            <tr className="hover:bg-pink-50/30 transition-colors group">
+                              <td className="px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                  <button 
+                                    onClick={() => toggleRecipeExpand(recipe.id)}
+                                    className={cn(
+                                      "p-1 rounded-lg transition-all",
+                                      isExpanded ? "bg-primary text-white rotate-180" : "bg-gray-100 text-gray-400 hover:text-primary"
+                                    )}
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+                                  <div className="space-y-1">
+                                    <p className="font-bold text-gray-800 group-hover:text-primary transition-colors">{recipe.name}</p>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-bold text-primary bg-primary-light px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                        {recipe.category}
+                                      </span>
+                                      <span className="text-[10px] font-medium text-gray-400">
+                                        Yield: {recipe.yield} unit
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-right">
-                              <p className="font-mono text-sm text-gray-600">{formatCurrency(hpp)}</p>
-                              <p className="text-[9px] text-gray-400 italic">HPP/Unit: {formatCurrency(hppPerUnit)}</p>
-                            </td>
-                            <td className="px-6 py-5 text-right">
-                              <p className="font-mono font-bold text-primary text-lg leading-none">
-                                {formatCurrency(hpp * item.multiplier)}
-                              </p>
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex flex-col items-center gap-1.5">
-                                <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">Rp</span>
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={recipe.sellingPrice === 0 || !recipe.sellingPrice ? '' : recipe.sellingPrice.toString()}
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(/[^0-9]/g, '');
-                                      updateSellingPrice(recipe.id, val === '' ? 0 : parseInt(val));
-                                    }}
-                                    className="w-32 pl-8 pr-3 py-2 text-right bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-mono font-bold text-sm transition-all"
-                                    placeholder={Math.round(suggestedPrice).toString()}
-                                  />
+                              </td>
+                              <td className="px-6 py-5">
+                                <div className="flex items-center justify-center">
+                                  <div className="relative group/input">
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={tempValues[`mult-${item.recipeId}`] !== undefined ? tempValues[`mult-${item.recipeId}`] : (item.multiplier === 0 ? '' : item.multiplier.toString())}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(',', '.');
+                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                          setTempValues(prev => ({ ...prev, [`mult-${item.recipeId}`]: val }));
+                                          updateMultiplier(item.recipeId, val === '' ? 0 : parseFloat(val));
+                                        }
+                                      }}
+                                      onBlur={() => setTempValues(prev => {
+                                        const n = { ...prev };
+                                        delete n[`mult-${item.recipeId}`];
+                                        return n;
+                                      })}
+                                      className="w-20 px-3 py-2 text-center bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-bold transition-all"
+                                    />
+                                    <div className="absolute -top-2 -right-2 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover/input:opacity-100 transition-opacity">
+                                      Edit
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1 text-[9px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-                                  <Info size={10} className="text-primary" />
-                                  <span>Saran: <span className="font-bold">{formatCurrency(suggestedPrice)}</span></span>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                <p className="font-mono text-sm text-gray-600">{formatCurrency(hpp)}</p>
+                                <p className="text-[9px] text-gray-400 italic">HPP/Unit: {formatCurrency(hppPerUnit)}</p>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                <p className="font-mono font-bold text-primary text-lg leading-none">
+                                  {formatCurrency(hpp * item.multiplier)}
+                                </p>
+                              </td>
+                              <td className="px-6 py-5">
+                                <div className="flex flex-col items-center gap-1.5">
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">Rp</span>
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      value={tempValues[`sell-${recipe.id}`] !== undefined ? tempValues[`sell-${recipe.id}`] : (recipe.sellingPrice === 0 || !recipe.sellingPrice ? '' : recipe.sellingPrice.toString())}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                        setTempValues(prev => ({ ...prev, [`sell-${recipe.id}`]: val }));
+                                        updateSellingPrice(recipe.id, val === '' ? 0 : parseInt(val));
+                                      }}
+                                      onBlur={() => setTempValues(prev => {
+                                        const n = { ...prev };
+                                        delete n[`sell-${recipe.id}`];
+                                        return n;
+                                      })}
+                                      className="w-32 pl-8 pr-3 py-2 text-right bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-mono font-bold text-sm transition-all"
+                                      placeholder={Math.round(suggestedPrice).toString()}
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1 text-[9px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                                    <Info size={10} className="text-primary" />
+                                    <span>Saran: <span className="font-bold">{formatCurrency(suggestedPrice)}</span></span>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-right">
-                              <button 
-                                onClick={() => removeRecipe(item.recipeId)}
-                                className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                                title="Hapus dari daftar"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </td>
-                          </tr>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                <button 
+                                  onClick={() => removeRecipe(item.recipeId)}
+                                  className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                                  title="Hapus dari daftar"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={6} className="px-6 py-0 border-none">
+                                    <motion.div 
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      className="overflow-hidden"
+                                    >
+                                      <div className="bg-gray-50/50 rounded-2xl p-6 mb-4 border border-gray-100 shadow-inner">
+                                        <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Rincian Bahan Baku per Batch</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                            {recipe.ingredients.map((ri, idx) => {
+                                              const ing = ingredients.find(i => i.id === ri.ingredientId);
+                                              if (!ing) return null;
+                                              
+                                              let pricePerUnit = (ing.price || 0) / (ing.baseQuantity || 1);
+                                              const recipeUnit = ri.unit || ing.unit;
+                                              if (ing.unit === 'kg' && recipeUnit === 'gr') pricePerUnit /= 1000;
+                                              if (ing.unit === 'gr' && recipeUnit === 'kg') pricePerUnit *= 1000;
+                                              if (ing.unit === 'liter' && recipeUnit === 'ml') pricePerUnit /= 1000;
+                                              if (ing.unit === 'ml' && recipeUnit === 'liter') pricePerUnit *= 1000;
+                                              
+                                              const subtotal = pricePerUnit * ri.amount;
+                                              return (
+                                                <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                                                  <div className="flex flex-col">
+                                                    <span className="text-sm font-medium text-gray-700">{ing.name}</span>
+                                                    <span className="text-[10px] text-gray-400">{ri.amount} {recipeUnit} x {formatCurrency(pricePerUnit)}</span>
+                                                  </div>
+                                                  <span className="font-mono text-sm font-bold text-gray-600">{formatCurrency(subtotal)}</span>
+                                                </div>
+                                              );
+                                            })}
+                                          {recipe.otherCosts > 0 && (
+                                            <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                                              <span className="text-sm font-medium text-gray-700">Biaya Lain-lain</span>
+                                              <span className="font-mono text-sm font-bold text-gray-600">{formatCurrency(recipe.otherCosts)}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  </td>
+                                </tr>
+                              )}
+                            </AnimatePresence>
+                          </React.Fragment>
                         );
                       })}
                     </tbody>

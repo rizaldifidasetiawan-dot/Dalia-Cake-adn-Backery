@@ -11,6 +11,7 @@ const ShoppingList: React.FC = () => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [selectedRecipes, setSelectedRecipes] = useState<ShoppingListRecipe[]>([]);
   const [isGenerated, setIsGenerated] = useState(false);
+  const [stockValues, setStockValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubRecipes = onSnapshot(
@@ -72,7 +73,19 @@ const ShoppingList: React.FC = () => {
       const recipe = recipes.find(r => r.id === sr.recipeId);
       if (recipe) {
         recipe.ingredients.forEach(ri => {
-          aggregated[ri.ingredientId] = (aggregated[ri.ingredientId] || 0) + (ri.amount * sr.multiplier);
+          const ing = ingredients.find(i => i.id === ri.ingredientId);
+          if (ing) {
+            let amountInBaseUnit = ri.amount * sr.multiplier;
+            const recipeUnit = ri.unit || ing.unit;
+
+            // Convert to base unit
+            if (ing.unit === 'kg' && recipeUnit === 'gr') amountInBaseUnit /= 1000;
+            if (ing.unit === 'gr' && recipeUnit === 'kg') amountInBaseUnit *= 1000;
+            if (ing.unit === 'liter' && recipeUnit === 'ml') amountInBaseUnit /= 1000;
+            if (ing.unit === 'ml' && recipeUnit === 'liter') amountInBaseUnit *= 1000;
+
+            aggregated[ri.ingredientId] = (aggregated[ri.ingredientId] || 0) + amountInBaseUnit;
+          }
         });
       }
     });
@@ -81,18 +94,32 @@ const ShoppingList: React.FC = () => {
       const ing = ingredients.find(i => i.id === ingId);
       const pricePerUnit = (ing?.price || 0) / (ing?.baseQuantity || 1);
       return {
+        id: ingId,
         name: ing?.name || 'Unknown',
-        amount,
+        amount: Number(amount.toFixed(2)),
         unit: ing?.unit || '',
         estimatedCost: pricePerUnit * amount
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const shoppingItems = generateList();
-  const totalEstimated = shoppingItems.reduce((acc, item) => acc + item.estimatedCost, 0);
+  const shoppingItems = generateList().map(item => {
+    const stock = parseFloat(stockValues[item.id] || '0') || 0;
+    const amountToBuy = Math.max(0, item.amount - stock);
+    const pricePerUnit = item.amount > 0 ? item.estimatedCost / item.amount : 0;
+    return {
+      ...item,
+      stock,
+      amountToBuy: Number(amountToBuy.toFixed(2)),
+      finalCost: pricePerUnit * amountToBuy
+    };
+  });
+
+  const totalEstimated = shoppingItems.reduce((acc, item) => acc + item.finalCost, 0);
 
   const handlePrint = () => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Mohon izinkan popup untuk mencetak daftar belanja.');
@@ -112,6 +139,7 @@ const ShoppingList: React.FC = () => {
             .item-amount { color: #666; font-size: 0.9em; }
             .total { margin-top: 40px; font-size: 24px; font-weight: bold; color: #DB2777; border-top: 2px solid #DB2777; padding-top: 15px; text-align: right; }
             .meta { color: #999; font-size: 12px; margin-top: 5px; }
+            .no-print { display: none; }
             @media print {
               body { padding: 0; }
               .no-print { display: none; }
@@ -119,6 +147,7 @@ const ShoppingList: React.FC = () => {
           </style>
         </head>
         <body>
+          ${isMobile ? '<div class="no-print" style="text-align: center; padding: 10px; background: #f0f0f0; margin-bottom: 20px; border-radius: 8px;">Gunakan menu browser untuk "Simpan sebagai PDF" atau "Cetak"</div>' : ''}
           <div class="header">
             <h1>Dalia Cake & Bakery</h1>
             <div class="meta">Daftar Belanja Otomatis • ${new Date().toLocaleDateString('id-ID')}</div>
@@ -129,9 +158,13 @@ const ShoppingList: React.FC = () => {
               <div class="item">
                 <div>
                   <div class="item-name">${item.name}</div>
-                  <div class="item-amount">${item.amount} ${item.unit}</div>
+                  <div class="item-amount">
+                    Butuh: ${item.amount} ${item.unit} | 
+                    Stok: ${item.stock} ${item.unit} | 
+                    Beli: ${item.amountToBuy} ${item.unit}
+                  </div>
                 </div>
-                <div class="item-price">${formatCurrency(item.estimatedCost)}</div>
+                <div class="item-price">${formatCurrency(item.finalCost)}</div>
               </div>
             `).join('')}
           </div>
@@ -144,50 +177,64 @@ const ShoppingList: React.FC = () => {
           <div style="margin-top: 50px; font-size: 10px; color: #ccc; text-align: center;">
             Dicetak melalui Sistem Manajemen Dalia Bakery
           </div>
+          <script>
+            window.onload = () => {
+              window.print();
+              ${isMobile ? '' : 'setTimeout(() => { window.close(); }, 500);'}
+            };
+          </script>
         </body>
       </html>
     `);
     printWindow.document.close();
     printWindow.focus();
-    // Small delay to ensure styles are loaded before printing
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
   };
 
   return (
-    <div className="space-y-8 pb-20">
-      <header>
-        <h1 className="text-3xl font-serif font-bold text-primary">Daftar Belanja Otomatis</h1>
-        <p className="text-gray-500">Pilih resep dan jumlah batch untuk menghasilkan daftar belanja</p>
+    <div className="space-y-8 pb-24">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-primary">Daftar Belanja Otomatis</h1>
+          <p className="text-gray-500">Pilih resep dan jumlah batch untuk menghasilkan daftar belanja</p>
+        </div>
+        {isGenerated && (
+          <button onClick={handlePrint} className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-bold hover:bg-primary-dark transition-all shadow-md">
+            <Printer size={18} />
+            Cetak Daftar
+          </button>
+        )}
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recipe Selection */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className={cn("lg:col-span-1 space-y-6", isGenerated && "hidden lg:block")}>
           <section className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Plus size={20} className="text-primary" />
               Pilih Resep
             </h2>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 max-h-[300px] lg:max-h-[400px] overflow-y-auto pr-2">
               {recipes.map(recipe => (
                 <button
                   key={recipe.id}
                   onClick={() => handleAddRecipe(recipe.id)}
                   className="w-full text-left p-4 rounded-2xl border border-gray-50 hover:border-primary hover:bg-primary-light transition-all group"
                 >
-                  <p className="font-bold text-gray-700 group-hover:text-primary">{recipe.name}</p>
-                  <p className="text-xs text-gray-400">{recipe.category} • Yield: {recipe.yield} {recipe.yieldUnit}</p>
+                  <p className="font-bold text-gray-700 group-hover:text-primary text-sm">{recipe.name}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">{recipe.category}</p>
                 </button>
               ))}
             </div>
           </section>
 
           <section className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Resep Terpilih</h2>
-            <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Resep Terpilih</h2>
+              <span className="bg-primary-light text-primary text-xs font-bold px-2 py-1 rounded-full">
+                {selectedRecipes.length}
+              </span>
+            </div>
+            <div className="space-y-3 max-h-[200px] lg:max-h-none overflow-y-auto pr-2">
               {selectedRecipes.length === 0 ? (
                 <p className="text-center text-gray-400 py-4 italic text-sm">Belum ada resep dipilih.</p>
               ) : (
@@ -196,14 +243,14 @@ const ShoppingList: React.FC = () => {
                   return (
                     <div key={sr.recipeId} className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm text-gray-700 truncate">{r?.name}</p>
+                        <p className="font-bold text-xs text-gray-700 truncate">{r?.name}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, -1)} className="p-1 hover:bg-white rounded-full text-gray-500"><Minus size={14} /></button>
+                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, -1)} className="p-1 hover:bg-white rounded-full text-gray-500"><Minus size={12} /></button>
                           <span className="text-xs font-bold text-primary w-8 text-center">{sr.multiplier}x</span>
-                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, 1)} className="p-1 hover:bg-white rounded-full text-gray-500"><Plus size={14} /></button>
+                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, 1)} className="p-1 hover:bg-white rounded-full text-gray-500"><Plus size={12} /></button>
                         </div>
                       </div>
-                      <button onClick={() => handleRemoveRecipe(sr.recipeId)} className="p-2 text-red-500 hover:bg-white rounded-full"><Trash2 size={16} /></button>
+                      <button onClick={() => handleRemoveRecipe(sr.recipeId)} className="p-2 text-red-500 hover:bg-white rounded-full"><Trash2 size={14} /></button>
                     </div>
                   );
                 })
@@ -222,53 +269,92 @@ const ShoppingList: React.FC = () => {
         </div>
 
         {/* Generated List */}
-        <div className="lg:col-span-2">
+        <div className={cn("lg:col-span-2", !isGenerated && "hidden lg:block")}>
           <AnimatePresence mode="wait">
             {isGenerated ? (
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="bg-white p-8 rounded-[32px] shadow-xl border border-gray-100"
-                id="printable-area"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-white p-5 md:p-8 rounded-[32px] shadow-xl border border-gray-100"
               >
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-2xl font-serif font-bold text-primary">Daftar Belanja</h2>
-                    <p className="text-sm text-gray-500">Berdasarkan {selectedRecipes.length} resep terpilih</p>
+                    <h2 className="text-xl md:text-2xl font-serif font-bold text-primary">Daftar Belanja</h2>
+                    <p className="text-xs md:text-sm text-gray-500">Berdasarkan {selectedRecipes.length} resep</p>
                   </div>
-                  <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 bg-primary-light text-primary rounded-full font-bold hover:bg-pink-100 transition-colors">
-                    <Printer size={18} />
-                    Cetak
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setIsGenerated(false)} 
+                      className="lg:hidden p-3 bg-gray-100 text-gray-500 rounded-full"
+                    >
+                      <Plus size={20} />
+                    </button>
+                    <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-3 bg-primary-light text-primary rounded-full font-bold hover:bg-pink-100 transition-colors text-sm">
+                      <Printer size={18} />
+                      <span className="hidden sm:inline">Cetak</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-2 mb-8">
+                <div className="space-y-1 mb-8">
+                  <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                    <div className="col-span-5">Bahan Baku</div>
+                    <div className="col-span-2 text-center">Butuh</div>
+                    <div className="col-span-2 text-center">Stok Ada</div>
+                    <div className="col-span-3 text-right">Beli & Estimasi</div>
+                  </div>
                   {shoppingItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors rounded-xl group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-6 h-6 rounded-full border-2 border-gray-200 flex items-center justify-center group-hover:border-primary transition-colors">
-                          <div className="w-3 h-3 rounded-full bg-primary opacity-0 group-hover:opacity-20"></div>
+                    <div key={idx} className="flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors rounded-xl group">
+                      <div className="col-span-5 flex items-center gap-3">
+                        <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center group-hover:border-primary transition-colors shrink-0">
+                          <div className="w-2.5 h-2.5 rounded-full bg-primary opacity-0 group-hover:opacity-20"></div>
                         </div>
-                        <div>
-                          <p className="font-bold text-gray-800">{item.name}</p>
-                          <p className="text-sm text-gray-500">{item.amount} {item.unit}</p>
+                        <p className="font-bold text-sm md:text-base text-gray-800 truncate">{item.name}</p>
+                      </div>
+                      
+                      <div className="col-span-2 flex md:flex-col justify-between items-center md:items-center">
+                        <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase">Butuh</span>
+                        <p className="text-xs md:text-sm text-gray-500 font-medium">{item.amount} {item.unit}</p>
+                      </div>
+
+                      <div className="col-span-2 flex md:flex-col justify-between items-center">
+                        <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase">Stok Ada</span>
+                        <div className="relative w-24 md:w-full">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={stockValues[item.id] !== undefined ? stockValues[item.id] : ''}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(',', '.');
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                setStockValues(prev => ({ ...prev, [item.id]: val }));
+                              }
+                            }}
+                            placeholder="0"
+                            className="w-full px-2 py-1 text-center bg-white border border-gray-100 rounded-lg outline-none text-xs font-bold focus:border-primary transition-colors"
+                          />
+                          <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 font-bold">{item.unit}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Estimasi Biaya</p>
-                        <p className="font-mono font-bold text-gray-700">{formatCurrency(item.estimatedCost)}</p>
+
+                      <div className="col-span-3 flex md:flex-col justify-between items-center md:items-end">
+                        <span className="md:hidden text-[10px] font-bold text-primary uppercase">Beli & Estimasi</span>
+                        <div className="text-right">
+                          <p className="font-bold text-sm text-primary">{item.amountToBuy} {item.unit}</p>
+                          <p className="font-mono font-bold text-xs text-gray-700">{formatCurrency(item.finalCost)}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-primary-light p-6 rounded-2xl flex items-center justify-between">
+                <div className="bg-primary-light p-5 md:p-6 rounded-2xl flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Total Estimasi Belanja</p>
-                    <p className="text-3xl font-mono font-bold text-primary">{formatCurrency(totalEstimated)}</p>
+                    <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-widest">Total Estimasi</p>
+                    <p className="text-2xl md:text-3xl font-mono font-bold text-primary">{formatCurrency(totalEstimated)}</p>
                   </div>
-                  <CheckCircle2 size={48} className="text-primary opacity-20" />
+                  <CheckCircle2 size={40} className="text-primary opacity-20" />
                 </div>
               </motion.div>
             ) : (
@@ -277,7 +363,7 @@ const ShoppingList: React.FC = () => {
                   <ShoppingCart size={48} className="text-gray-300" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-400">Daftar Belanja Belum Dibuat</h3>
-                <p className="text-gray-400 max-w-xs mx-auto mt-2">
+                <p className="text-gray-400 max-w-xs mx-auto mt-2 text-sm">
                   Pilih beberapa resep di sebelah kiri dan klik tombol "Generate" untuk melihat daftar belanjaan Anda.
                 </p>
               </div>

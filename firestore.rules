@@ -28,6 +28,10 @@ service cloud.firestore {
     // Rules
     // ===============================================================
 
+    match /_connection_test_/{id} {
+      allow read: if true;
+    }
+
     match /ingredients/{id} {
       allow read, write: if true;
     }

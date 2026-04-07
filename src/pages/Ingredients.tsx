@@ -14,6 +14,7 @@ const Ingredients: React.FC = () => {
   const [ingToDelete, setIngToDelete] = useState<string | null>(null);
   const [editingIng, setEditingIng] = useState<Ingredient | null>(null);
   const [formData, setFormData] = useState({ name: '', unit: 'gr', price: 0, baseQuantity: 1 });
+  const [tempValues, setTempValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -81,15 +82,27 @@ const Ingredients: React.FC = () => {
         <button
           onClick={() => {
             setEditingIng(null);
-            setFormData({ name: '', unit: 'gr', pricePerUnit: 0 });
+            setFormData({ name: '', unit: 'gr', price: 0, baseQuantity: 1 });
             setIsModalOpen(true);
           }}
-          className="flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-full hover:bg-primary-dark transition-all shadow-md"
+          className="hidden md:flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-full hover:bg-primary-dark transition-all shadow-md"
         >
           <Plus size={20} />
           Tambah Bahan
         </button>
       </header>
+
+      {/* Mobile FAB */}
+      <button
+        onClick={() => {
+          setEditingIng(null);
+          setFormData({ name: '', unit: 'gr', price: 0, baseQuantity: 1 });
+          setIsModalOpen(true);
+        }}
+        className="md:hidden fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl z-40 active:scale-95 transition-transform"
+      >
+        <Plus size={28} />
+      </button>
 
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -111,7 +124,7 @@ const Ingredients: React.FC = () => {
           >
             <div className="flex justify-between items-start mb-4">
               <h3 className="font-bold text-lg text-gray-800">{ing.name}</h3>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1">
                 <button 
                   onClick={() => {
                     setEditingIng(ing);
@@ -123,13 +136,13 @@ const Ingredients: React.FC = () => {
                     });
                     setIsModalOpen(true);
                   }}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                  className="p-2 text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button 
                   onClick={() => handleDeleteClick(ing.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                  className="p-2 text-red-600 bg-red-50 rounded-full hover:bg-red-100 transition-colors"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -192,10 +205,21 @@ const Ingredients: React.FC = () => {
                     <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Jumlah Per Unit</label>
                     <input
                       required
-                      type="number"
-                      min="1"
-                      value={formData.baseQuantity}
-                      onChange={(e) => setFormData({ ...formData, baseQuantity: Number(e.target.value) })}
+                      type="text"
+                      inputMode="decimal"
+                      value={tempValues['baseQuantity'] !== undefined ? tempValues['baseQuantity'] : (formData.baseQuantity === 0 ? '' : formData.baseQuantity.toString())}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, baseQuantity: val }));
+                          setFormData({ ...formData, baseQuantity: val === '' ? 0 : parseFloat(val) });
+                        }
+                      }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n.baseQuantity;
+                        return n;
+                      })}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none"
                       placeholder="Contoh: 500"
                     />
@@ -205,9 +229,19 @@ const Ingredients: React.FC = () => {
                   <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Harga per Jumlah Unit</label>
                   <input
                     required
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                    type="text"
+                    inputMode="numeric"
+                    value={tempValues['price'] !== undefined ? tempValues['price'] : (formData.price === 0 ? '' : formData.price.toString())}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setTempValues(prev => ({ ...prev, price: val }));
+                      setFormData({ ...formData, price: val === '' ? 0 : parseInt(val) });
+                    }}
+                    onBlur={() => setTempValues(prev => {
+                      const n = { ...prev };
+                      delete n.price;
+                      return n;
+                    })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none"
                     placeholder="Contoh: 10000"
                   />

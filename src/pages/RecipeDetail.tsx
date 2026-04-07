@@ -30,6 +30,7 @@ const RecipeDetail: React.FC = () => {
   const [loading, setLoading] = useState(!isNew);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddData, setQuickAddData] = useState({ name: '', unit: 'gr', price: 0, baseQuantity: 1 });
+  const [tempValues, setTempValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubIng = onSnapshot(
@@ -102,7 +103,15 @@ const RecipeDetail: React.FC = () => {
     const ingredientCost = (recipe.ingredients || []).reduce((total, ri) => {
       const ing = allIngredients.find(i => i.id === ri.ingredientId);
       if (ing) {
-        const pricePerUnit = (ing.price || 0) / (ing.baseQuantity || 1);
+        let pricePerUnit = (ing.price || 0) / (ing.baseQuantity || 1);
+        
+        // Handle unit conversion if necessary
+        const recipeUnit = ri.unit || ing.unit;
+        if (ing.unit === 'kg' && recipeUnit === 'gr') pricePerUnit /= 1000;
+        if (ing.unit === 'gr' && recipeUnit === 'kg') pricePerUnit *= 1000;
+        if (ing.unit === 'liter' && recipeUnit === 'ml') pricePerUnit /= 1000;
+        if (ing.unit === 'ml' && recipeUnit === 'liter') pricePerUnit *= 1000;
+
         return total + (pricePerUnit * ri.amount);
       }
       return total;
@@ -198,11 +207,24 @@ const RecipeDetail: React.FC = () => {
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Yield (Hasil)</label>
               <input
-                type="number"
-                value={recipe.yield}
-                onChange={(e) => setRecipe({ ...recipe, yield: Number(e.target.value) })}
+                type="text"
+                inputMode="decimal"
+                value={tempValues['yield'] !== undefined ? tempValues['yield'] : (recipe.yield === 0 ? '' : recipe.yield?.toString())}
+                onChange={(e) => {
+                  const val = e.target.value.replace(',', '.');
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setTempValues(prev => ({ ...prev, yield: val }));
+                    setRecipe({ ...recipe, yield: val === '' ? 0 : parseFloat(val) });
+                  }
+                }}
+                onBlur={() => setTempValues(prev => {
+                  const n = { ...prev };
+                  delete n.yield;
+                  return n;
+                })}
                 disabled={!isAdmin}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                placeholder="0"
               />
             </div>
             <div className="space-y-2">
@@ -246,49 +268,76 @@ const RecipeDetail: React.FC = () => {
             )}
           </div>
           <div className="space-y-4">
-            {recipe.ingredients?.map((ri, idx) => (
-              <div key={idx} className="flex flex-col md:flex-row md:items-center gap-4 p-4 md:p-4 bg-gray-50 rounded-2xl border border-gray-100 relative">
-                <div className="flex-1">
-                  <label className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Nama Bahan</label>
-                  <select
-                    value={ri.ingredientId}
-                    onChange={(e) => handleIngredientChange(idx, 'ingredientId', e.target.value)}
-                    disabled={!isAdmin}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                  >
-                    <option value="">Pilih Bahan...</option>
-                    {allIngredients.map(ing => (
-                      <option key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</option>
-                    ))}
-                  </select>
+            {recipe.ingredients?.map((ri, idx) => {
+              const selectedIng = allIngredients.find(i => i.id === ri.ingredientId);
+              return (
+                <div key={idx} className="flex flex-col md:flex-row md:items-center gap-4 p-4 md:p-4 bg-gray-50 rounded-2xl border border-gray-100 relative">
+                  <div className="flex-1">
+                    <label className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Nama Bahan</label>
+                    <select
+                      value={ri.ingredientId}
+                      onChange={(e) => handleIngredientChange(idx, 'ingredientId', e.target.value)}
+                      disabled={!isAdmin}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                    >
+                      <option value="">Pilih Bahan...</option>
+                      {allIngredients.map(ing => (
+                        <option key={ing.id} value={ing.id}>{ing.name}</option>
+                      ))}\
+                    </select>
+                  </div>
+                  <div className="w-full md:w-32">
+                    <label className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Jumlah</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={tempValues[`ing-${idx}`] !== undefined ? tempValues[`ing-${idx}`] : (ri.amount === 0 ? '' : ri.amount.toString())}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, [`ing-${idx}`]: val }));
+                          handleIngredientChange(idx, 'amount', val === '' ? 0 : parseFloat(val));
+                        }
+                      }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n[`ing-${idx}`];
+                        return n;
+                      })}
+                      disabled={!isAdmin}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="w-full md:w-24">
+                    <label className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Satuan</label>
+                    <select
+                      value={ri.unit || selectedIng?.unit || 'gr'}
+                      onChange={(e) => handleIngredientChange(idx, 'unit', e.target.value)}
+                      disabled={!isAdmin}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                    >
+                      <option value="gr">gr</option>
+                      <option value="kg">kg</option>
+                      <option value="ml">ml</option>
+                      <option value="liter">liter</option>
+                      <option value="pcs">pcs</option>
+                      <option value="butir">butir</option>
+                      <option value="sdm">sdm</option>
+                      <option value="sdt">sdt</option>
+                    </select>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleRemoveIngredient(idx)}
+                      className="absolute top-2 right-2 md:relative md:top-0 md:right-0 p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
-                <div className="w-full md:w-32">
-                  <label className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">Jumlah</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={ri.amount === 0 ? '' : ri.amount.toString()}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(',', '.');
-                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                        handleIngredientChange(idx, 'amount', val === '' ? 0 : parseFloat(val));
-                      }
-                    }}
-                    disabled={!isAdmin}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                    placeholder="0"
-                  />
-                </div>
-                {isAdmin && (
-                  <button
-                    onClick={() => handleRemoveIngredient(idx)}
-                    className="absolute top-2 right-2 md:relative md:top-0 md:right-0 p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
             {(!recipe.ingredients || recipe.ingredients.length === 0) && (
               <p className="text-center text-gray-400 py-8 italic">Belum ada bahan baku ditambahkan.</p>
             )}
@@ -305,6 +354,104 @@ const RecipeDetail: React.FC = () => {
             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none min-h-[200px] disabled:bg-gray-50 disabled:text-gray-500"
             placeholder="Tulis langkah-langkah pembuatan di sini..."
           />
+        </section>
+
+        {/* Cost Summary */}
+        <section className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary-light rounded-2xl">
+              <Calculator size={24} className="text-primary" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Ringkasan Biaya</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Biaya Lain-lain</span>
+                  <div className="relative w-32">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">Rp</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={tempValues['otherCosts'] !== undefined ? tempValues['otherCosts'] : (recipe.otherCosts === 0 ? '' : recipe.otherCosts?.toString())}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, otherCosts: val }));
+                          setRecipe({ ...recipe, otherCosts: val === '' ? 0 : parseFloat(val) });
+                        }
+                      }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n.otherCosts;
+                        return n;
+                      })}
+                      disabled={!isAdmin}
+                      className="w-full pl-7 pr-2 py-1 text-right rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400 italic">Kemasan, tenaga kerja, listrik, dll.</p>
+              </div>
+
+              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-primary">Total HPP Resep</span>
+                  <span className="text-xl font-mono font-bold text-primary">{formatCurrency(hppTotal)}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-500">
+                  <span>HPP per {recipe.yieldUnit} ({recipe.yield} unit)</span>
+                  <span className="font-mono">{formatCurrency(hppPerUnit)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Markup Keuntungan</span>
+                  <div className="relative w-24">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={tempValues['markupPercent'] !== undefined ? tempValues['markupPercent'] : (recipe.markupPercent === 0 ? '' : recipe.markupPercent?.toString())}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, markupPercent: val }));
+                          setRecipe({ ...recipe, markupPercent: val === '' ? 0 : parseFloat(val) });
+                        }
+                      }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n.markupPercent;
+                        return n;
+                      })}
+                      disabled={!isAdmin}
+                      className="w-full pr-6 pl-2 py-1 text-right rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">%</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-gray-400">
+                  <span>Nilai Keuntungan</span>
+                  <span>{formatCurrency(suggestedPrice - hppPerUnit)}</span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-green-50 rounded-2xl border border-green-100 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-green-700">Saran Harga Jual</span>
+                  <span className="text-xl font-mono font-bold text-green-700">{formatCurrency(suggestedPrice)}</span>
+                </div>
+                <p className="text-[10px] text-green-600/70 italic">Dibulatkan: {formatCurrency(Math.round(suggestedPrice / 100) * 100)}</p>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -352,25 +499,46 @@ const RecipeDetail: React.FC = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Jumlah Dasar</label>
+                    <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Jumlah Per Unit</label>
                     <input
                       required
-                      type="number"
-                      min="1"
-                      value={quickAddData.baseQuantity}
-                      onChange={(e) => setQuickAddData({ ...quickAddData, baseQuantity: Number(e.target.value) })}
+                      type="text"
+                      inputMode="decimal"
+                      value={tempValues['quick-base'] !== undefined ? tempValues['quick-base'] : (quickAddData.baseQuantity === 0 ? '' : quickAddData.baseQuantity.toString())}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, 'quick-base': val }));
+                          setQuickAddData({ ...quickAddData, baseQuantity: val === '' ? 0 : parseFloat(val) });
+                        }
+                      }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n['quick-base'];
+                        return n;
+                      })}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
                       placeholder="Contoh: 500"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Harga per Jumlah Dasar</label>
+                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Harga per Jumlah Unit</label>
                   <input
                     required
-                    type="number"
-                    value={quickAddData.price}
-                    onChange={(e) => setQuickAddData({ ...quickAddData, price: Number(e.target.value) })}
+                    type="text"
+                    inputMode="numeric"
+                    value={tempValues['quick-price'] !== undefined ? tempValues['quick-price'] : (quickAddData.price === 0 ? '' : quickAddData.price.toString())}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setTempValues(prev => ({ ...prev, 'quick-price': val }));
+                      setQuickAddData({ ...quickAddData, price: val === '' ? 0 : parseInt(val) });
+                    }}
+                    onBlur={() => setTempValues(prev => {
+                      const n = { ...prev };
+                      delete n['quick-price'];
+                      return n;
+                    })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="Contoh: 10000"
                   />

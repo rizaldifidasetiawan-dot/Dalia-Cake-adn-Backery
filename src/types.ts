@@ -20,6 +20,7 @@ export interface Ingredient {
 export interface RecipeIngredient {
   ingredientId: string;
   amount: number;
+  unit?: string;
 }
 
 export interface Recipe {

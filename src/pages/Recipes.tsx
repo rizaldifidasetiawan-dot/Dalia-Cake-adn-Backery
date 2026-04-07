@@ -65,13 +65,23 @@ const Recipes: React.FC = () => {
         {user?.role === 'admin' && (
           <Link
             to="/recipes/new"
-            className="flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-full hover:bg-primary-dark transition-all shadow-md"
+            className="hidden md:flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-full hover:bg-primary-dark transition-all shadow-md"
           >
             <Plus size={20} />
             Tambah Resep
           </Link>
         )}
       </header>
+
+      {/* Mobile FAB */}
+      {user?.role === 'admin' && (
+        <Link
+          to="/recipes/new"
+          className="md:hidden fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl z-40 active:scale-95 transition-transform"
+        >
+          <Plus size={28} />
+        </Link>
+      )}
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">

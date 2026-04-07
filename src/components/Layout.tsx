@@ -288,9 +288,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-10 overflow-y-auto pb-24 md:pb-10">
           {children}
         </main>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-pink-100 px-2 py-3 flex justify-around items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          {navItems.slice(0, 5).map((item) => {
+            const isActive = item.path === '/' 
+              ? location.pathname === '/' 
+              : location.pathname.startsWith(item.path);
+            
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-gray-400"
+                )}
+              >
+                <item.icon size={20} className={cn(isActive && "scale-110 transition-transform")} />
+                <span className="text-[10px] font-bold">{item.name.split(' ')[0]}</span>
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full"
+                  />
+                )}
+              </Link>
+            );
+          })}
+          <button 
+            onClick={() => setIsMenuOpen(true)}
+            className="flex flex-col items-center gap-1 px-3 py-1 text-gray-400"
+          >
+            <Menu size={20} />
+            <span className="text-[10px] font-bold">Menu</span>
+          </button>
+        </nav>
       </div>
     </div>
   );
