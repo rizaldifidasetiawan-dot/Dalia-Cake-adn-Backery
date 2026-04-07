@@ -13,7 +13,8 @@ import {
   Banknote,
   X,
   CheckCircle2,
-  Settings
+  Settings,
+  Save
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -170,18 +171,18 @@ const Cashier: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1">
           <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3">
             <Banknote size={32} />
             Kasir Dalia Bakery
           </h1>
-          <p className="text-gray-500">Pilih produk dan cetak struk pembayaran.</p>
+          <p className="text-stone-500 text-sm">Pilih produk dan cetak struk pembayaran untuk pelanggan.</p>
         </div>
         {user?.role === 'admin' && (
           <button
             onClick={() => setIsSettingsModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-white rounded-2xl border border-pink-100 text-primary font-bold hover:bg-primary-light transition-all shadow-sm"
+            className="pro-button-secondary flex items-center justify-center gap-2"
           >
             <Settings size={20} />
             Pengaturan Struk
@@ -192,42 +193,50 @@ const Cashier: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Product Selection */}
         <div className={cn("lg:col-span-2 space-y-6", isCartOpen && "hidden lg:block")}>
-          <section className="bg-white p-4 md:p-6 rounded-[32px] shadow-sm border border-pink-50">
-            <div className="relative mb-6">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <section className="pro-card p-6 md:p-8">
+            <div className="relative mb-8">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
               <input
                 type="text"
-                placeholder="Cari produk..."
+                placeholder="Cari produk berdasarkan nama atau kategori..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                className="pro-input pl-14 py-4"
               />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
               {filteredRecipes.map(recipe => (
                 <button
                   key={recipe.id}
                   onClick={() => addToCart(recipe)}
-                  className="bg-white p-4 md:p-5 rounded-[24px] border border-gray-100 hover:border-primary hover:shadow-md transition-all text-left group flex flex-col justify-between h-full"
+                  className="bg-white p-5 rounded-[28px] border border-stone-100 hover:border-primary hover:shadow-xl hover:shadow-pink-100/50 transition-all text-left group flex flex-col justify-between h-full relative overflow-hidden"
                 >
+                  <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                    <div className="p-2 bg-primary text-white rounded-xl shadow-lg shadow-pink-200">
+                      <Plus size={16} />
+                    </div>
+                  </div>
                   <div>
-                    <span className="text-[8px] md:text-[10px] font-bold text-primary uppercase tracking-widest bg-primary-light px-2 py-0.5 rounded-full mb-2 inline-block">
+                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest bg-primary-light px-3 py-1 rounded-full mb-3 inline-block border border-pink-100">
                       {recipe.category}
                     </span>
-                    <h3 className="font-bold text-sm md:text-base text-gray-800 mb-1 group-hover:text-primary transition-colors line-clamp-2">{recipe.name}</h3>
+                    <h3 className="font-serif font-bold text-base text-stone-800 mb-1 group-hover:text-primary transition-colors line-clamp-2 leading-tight">{recipe.name}</h3>
                   </div>
-                  <div className="mt-2 md:mt-4 flex items-center justify-between">
-                    <p className="font-mono font-bold text-xs md:text-sm text-gray-700">{formatCurrency(recipe.sellingPrice || 0)}</p>
-                    <div className="p-1.5 md:p-2 bg-primary-light text-primary rounded-xl md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Plus size={16} />
+                  <div className="mt-6 pt-4 border-t border-stone-50 flex items-center justify-between">
+                    <p className="font-mono font-bold text-sm text-stone-700">{formatCurrency(recipe.sellingPrice || 0)}</p>
+                    <div className="w-8 h-8 rounded-lg bg-stone-50 flex items-center justify-center text-stone-300 group-hover:bg-primary-light group-hover:text-primary transition-colors">
+                      <Plus size={14} />
                     </div>
                   </div>
                 </button>
               ))}
               {filteredRecipes.length === 0 && (
-                <div className="col-span-full py-12 text-center text-gray-400 italic">
-                  Produk tidak ditemukan.
+                <div className="col-span-full py-20 text-center space-y-4">
+                  <div className="w-20 h-20 bg-stone-50 rounded-full flex items-center justify-center mx-auto text-stone-200">
+                    <Search size={40} />
+                  </div>
+                  <p className="text-stone-400 font-serif italic">Produk tidak ditemukan.</p>
                 </div>
               )}
             </div>
@@ -236,15 +245,17 @@ const Cashier: React.FC = () => {
 
         {/* Shopping Cart */}
         <div className={cn("space-y-6", !isCartOpen && "hidden lg:block")}>
-          <section className="bg-white p-6 md:p-8 rounded-[32px] shadow-sm border border-pink-50 flex flex-col h-[calc(100vh-200px)] lg:h-[calc(100vh-250px)] lg:sticky lg:top-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <ShoppingCart className="text-primary" />
-                Keranjang
-              </h2>
+          <section className="pro-card p-8 flex flex-col h-[calc(100vh-200px)] lg:h-[calc(100vh-250px)] lg:sticky lg:top-8">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary-light text-primary rounded-xl">
+                  <ShoppingCart size={20} />
+                </div>
+                <h2 className="text-xl font-serif font-bold text-stone-800">Keranjang</h2>
+              </div>
               <button 
                 onClick={() => setIsCartOpen(false)}
-                className="lg:hidden p-2 text-gray-400 hover:bg-gray-100 rounded-full"
+                className="lg:hidden p-2 text-stone-400 hover:bg-stone-50 rounded-xl transition-colors"
               >
                 <X size={24} />
               </button>
@@ -252,55 +263,59 @@ const Cashier: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
               {cart.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-gray-400">
-                  <ShoppingCart size={48} className="opacity-20 mb-4" />
-                  <p>Keranjang masih kosong</p>
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="w-24 h-24 bg-stone-50 rounded-full flex items-center justify-center text-stone-200">
+                    <ShoppingCart size={48} />
+                  </div>
+                  <p className="text-stone-400 font-serif italic text-sm">Keranjang masih kosong</p>
                 </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.recipeId} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                  <div key={item.recipeId} className="flex items-center gap-4 p-4 rounded-2xl bg-stone-50/50 border border-stone-100 group transition-all hover:bg-white hover:shadow-md">
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-xs md:text-sm text-gray-800 truncate">{item.name}</p>
-                      <p className="text-[10px] md:text-xs text-gray-500">{formatCurrency(item.price)}</p>
+                      <p className="font-bold text-sm text-stone-800 truncate leading-tight mb-1">{item.name}</p>
+                      <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{formatCurrency(item.price)}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-stone-100 shadow-sm">
                       <button 
                         onClick={() => updateQuantity(item.recipeId, -1)}
-                        className="p-1 text-gray-400 hover:text-primary hover:bg-white rounded-lg transition-all"
+                        className="p-1.5 text-stone-400 hover:text-primary hover:bg-primary-light rounded-lg transition-all"
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="font-bold text-xs md:text-sm min-w-[16px] text-center">{item.quantity}</span>
+                      <span className="font-mono font-bold text-sm min-w-[20px] text-center text-stone-700">{item.quantity}</span>
                       <button 
                         onClick={() => updateQuantity(item.recipeId, 1)}
-                        className="p-1 text-gray-400 hover:text-primary hover:bg-white rounded-lg transition-all"
+                        className="p-1.5 text-stone-400 hover:text-primary hover:bg-primary-light rounded-lg transition-all"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
                     <button 
                       onClick={() => removeFromCart(item.recipeId)}
-                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                      className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 ))
               )}
             </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500 font-medium">Total</span>
-                <span className="text-xl md:text-2xl font-mono font-bold text-primary">{formatCurrency(total)}</span>
+            <div className="mt-8 pt-8 border-t border-stone-100 space-y-6">
+              <div className="flex justify-between items-end">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Total Pembayaran</p>
+                  <p className="text-3xl font-mono font-bold text-primary leading-none">{formatCurrency(total)}</p>
+                </div>
               </div>
               <button
                 disabled={cart.length === 0}
                 onClick={() => setIsReceiptModalOpen(true)}
-                className="w-full bg-primary text-white py-3 md:py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-primary-dark transition-all disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                className="pro-button w-full flex items-center justify-center gap-3 py-5 text-base"
               >
-                <Printer size={18} />
-                Bayar & Cetak
+                <Printer size={20} />
+                Bayar & Cetak Struk
               </button>
             </div>
           </section>
@@ -323,38 +338,45 @@ const Cashier: React.FC = () => {
       {/* Receipt Modal */}
       <AnimatePresence>
         {isReceiptModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsReceiptModalOpen(false)}
+              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row"
+              className="relative bg-white w-full max-w-2xl pro-card overflow-hidden flex flex-col md:flex-row"
             >
               {/* Payment Form */}
-              <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto max-h-[80vh] md:max-h-none">
+              <div className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto max-h-[80vh] md:max-h-none">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl md:text-2xl font-serif font-bold text-primary">Pembayaran</h2>
-                  <button onClick={() => setIsReceiptModalOpen(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full">
+                  <h2 className="text-2xl font-serif font-bold text-primary">Pembayaran</h2>
+                  <button onClick={() => setIsReceiptModalOpen(false)} className="p-2 text-stone-400 hover:bg-stone-50 rounded-xl transition-colors">
                     <X size={24} />
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Pelanggan</label>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Nama Pelanggan</label>
                     <input
                       type="text"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all font-bold text-sm"
+                      className="pro-input font-bold"
                       placeholder="Umum"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Jumlah Bayar (Rp)</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Jumlah Bayar (Rp)</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rp</span>
+                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-stone-400 font-bold">Rp</span>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -363,21 +385,21 @@ const Cashier: React.FC = () => {
                           const val = e.target.value.replace(/[^0-9]/g, '');
                           setPaymentAmount(val === '' ? 0 : parseInt(val));
                         }}
-                        className="w-full pl-12 pr-4 py-3 md:py-4 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none font-mono font-bold text-lg md:text-xl"
+                        className="pro-input pl-14 py-5 font-mono text-2xl"
                         placeholder="0"
                       />
                     </div>
                   </div>
 
-                  <div className="p-5 md:p-6 bg-gray-50 rounded-[32px] space-y-2 md:space-y-3">
-                    <div className="flex justify-between text-xs md:text-sm text-gray-500">
+                  <div className="p-6 bg-stone-50/50 rounded-[32px] border border-stone-100 space-y-4">
+                    <div className="flex justify-between text-xs font-bold text-stone-400 uppercase tracking-widest">
                       <span>Total Tagihan</span>
-                      <span className="font-mono font-bold">{formatCurrency(total)}</span>
+                      <span className="font-mono text-stone-600">{formatCurrency(total)}</span>
                     </div>
-                    <div className="flex justify-between items-center pt-2 md:pt-3 border-t border-gray-200">
-                      <span className="font-bold text-sm md:text-base text-gray-800">Kembalian</span>
+                    <div className="flex justify-between items-center pt-4 border-t border-stone-100">
+                      <span className="font-serif font-bold text-lg text-stone-800">Kembalian</span>
                       <span className={cn(
-                        "text-xl md:text-2xl font-mono font-bold",
+                        "text-3xl font-mono font-bold",
                         change >= 0 ? "text-green-600" : "text-red-500"
                       )}>
                         {formatCurrency(change)}
@@ -386,10 +408,10 @@ const Cashier: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <button
                     onClick={handlePrint}
-                    className="flex-1 bg-gray-100 text-gray-600 py-3 md:py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 py-4 rounded-2xl font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
                   >
                     <Printer size={18} />
                     Cetak Struk
@@ -397,72 +419,51 @@ const Cashier: React.FC = () => {
                   <button
                     disabled={paymentAmount < total}
                     onClick={finishTransaction}
-                    className="flex-1 bg-primary text-white py-3 md:py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-primary-dark transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                    className="pro-button flex-1 flex items-center justify-center gap-2 py-4"
                   >
                     <CheckCircle2 size={18} />
-                    Transaksi Selesai
+                    Selesai
                   </button>
-                </div>
-
-                {/* Mobile Receipt Preview (Visible in modal on mobile) */}
-                <div className="md:hidden pt-6 border-t border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">Preview Struk</p>
-                  <div className="bg-gray-50 p-4 rounded-2xl overflow-x-auto">
-                    <div 
-                      className="bg-white p-6 shadow-sm font-mono text-[10px] text-gray-800 space-y-2 mx-auto w-[200px]"
-                    >
-                      <div className="text-center">
-                        <p className="font-bold text-[12px]">{receiptSettings.storeName}</p>
-                        <p className="text-[8px]">{receiptSettings.address}</p>
-                      </div>
-                      <div className="border-t border-dashed border-gray-300 my-2"></div>
-                      <div className="flex justify-between">
-                        <span>Total:</span>
-                        <span>{formatCurrency(total)}</span>
-                      </div>
-                      <div className="text-center mt-2">
-                        <p className="text-[8px]">{receiptSettings.footer}</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               {/* Desktop Receipt Preview */}
-              <div className="hidden md:block w-72 bg-gray-100 p-8 overflow-y-auto border-l border-gray-200">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">Preview Struk</p>
+              <div className="hidden md:block w-80 bg-stone-50 p-10 overflow-y-auto border-l border-stone-100">
+                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-6 text-center">Preview Struk</p>
                 <div 
                   ref={receiptRef}
-                  className="bg-white p-6 shadow-sm font-mono text-[10px] text-gray-800 space-y-2"
+                  className="bg-white p-8 shadow-xl shadow-stone-200/50 font-mono text-[10px] text-stone-800 space-y-3 rounded-sm border-t-8 border-primary"
                 >
-                  <div className="text-center">
-                    <p className="font-bold text-sm">{receiptSettings.storeName}</p>
-                    <p>{receiptSettings.address}</p>
-                    <p>Telp: {receiptSettings.phone}</p>
+                  <div className="text-center space-y-1">
+                    <p className="font-bold text-sm uppercase tracking-tighter">{receiptSettings.storeName}</p>
+                    <p className="text-[8px] text-stone-500 leading-tight">{receiptSettings.address}</p>
+                    <p className="text-[8px] text-stone-500">Telp: {receiptSettings.phone}</p>
                   </div>
                   
-                  <div className="divider border-t border-dashed border-gray-300 my-2"></div>
+                  <div className="border-t border-dashed border-stone-200 my-4"></div>
                   
-                  <div className="flex justify-between">
-                    <span>Tgl:</span>
-                    <span>{new Date().toLocaleDateString('id-ID')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Kasir:</span>
-                    <span>Admin</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Cust:</span>
-                    <span>{customerName || 'Umum'}</span>
+                  <div className="space-y-1 text-[8px] text-stone-500">
+                    <div className="flex justify-between">
+                      <span>Tanggal:</span>
+                      <span>{new Date().toLocaleDateString('id-ID')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kasir:</span>
+                      <span>{user?.displayName || 'Admin'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pelanggan:</span>
+                      <span>{customerName || 'Umum'}</span>
+                    </div>
                   </div>
 
-                  <div className="divider border-t border-dashed border-gray-300 my-2"></div>
+                  <div className="border-t border-dashed border-stone-200 my-4"></div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-3">
                     {cart.map(item => (
-                      <div key={item.recipeId}>
-                        <p>{item.name}</p>
-                        <div className="flex justify-between">
+                      <div key={item.recipeId} className="space-y-0.5">
+                        <p className="font-bold">{item.name}</p>
+                        <div className="flex justify-between text-stone-500">
                           <span>{item.quantity} x {formatCurrency(item.price)}</span>
                           <span>{formatCurrency(item.price * item.quantity)}</span>
                         </div>
@@ -470,25 +471,27 @@ const Cashier: React.FC = () => {
                     ))}
                   </div>
 
-                  <div className="divider border-t border-dashed border-gray-300 my-2"></div>
+                  <div className="border-t border-dashed border-stone-200 my-4"></div>
 
-                  <div className="flex justify-between font-bold">
-                    <span>TOTAL:</span>
-                    <span>{formatCurrency(total)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>BAYAR:</span>
-                    <span>{formatCurrency(paymentAmount)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>KEMBALI:</span>
-                    <span>{formatCurrency(change)}</span>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between font-bold text-xs">
+                      <span>TOTAL:</span>
+                      <span>{formatCurrency(total)}</span>
+                    </div>
+                    <div className="flex justify-between text-stone-500">
+                      <span>BAYAR:</span>
+                      <span>{formatCurrency(paymentAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-stone-500">
+                      <span>KEMBALI:</span>
+                      <span>{formatCurrency(change)}</span>
+                    </div>
                   </div>
 
-                  <div className="divider border-t border-dashed border-gray-300 my-2"></div>
+                  <div className="border-t border-dashed border-stone-200 my-4"></div>
 
-                  <div className="text-center mt-4">
-                    <p>{receiptSettings.footer}</p>
+                  <div className="text-center pt-2">
+                    <p className="text-[8px] text-stone-400 italic leading-tight">{receiptSettings.footer}</p>
                   </div>
                 </div>
               </div>
@@ -500,65 +503,72 @@ const Cashier: React.FC = () => {
       {/* Settings Modal */}
       <AnimatePresence>
         {isSettingsModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsModalOpen(false)}
+              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="bg-white w-full max-w-md rounded-[40px] shadow-2xl p-8 space-y-6"
+              className="relative bg-white w-full max-w-md pro-card overflow-hidden"
             >
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-serif font-bold text-primary">Pengaturan Struk</h2>
-                <button onClick={() => setIsSettingsModalOpen(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full">
+              <div className="p-6 border-b border-stone-50 flex justify-between items-center bg-stone-50/50">
+                <h2 className="text-xl font-serif font-bold text-stone-800">Pengaturan Struk</h2>
+                <button onClick={() => setIsSettingsModalOpen(false)} className="p-2 text-stone-400 hover:bg-white rounded-xl transition-colors">
                   <X size={24} />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Toko</label>
+              <div className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Nama Toko</label>
                   <input
                     type="text"
                     value={receiptSettings.storeName}
                     onChange={(e) => setReceiptSettings({ ...receiptSettings, storeName: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all font-bold"
+                    className="pro-input font-bold"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Alamat</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Alamat</label>
                   <input
                     type="text"
                     value={receiptSettings.address}
                     onChange={(e) => setReceiptSettings({ ...receiptSettings, address: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                    className="pro-input"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">No. Telp</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">No. Telp</label>
                   <input
                     type="text"
                     value={receiptSettings.phone}
                     onChange={(e) => setReceiptSettings({ ...receiptSettings, phone: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                    className="pro-input"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Pesan Penutup (Footer)</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Pesan Penutup (Footer)</label>
                   <textarea
                     value={receiptSettings.footer}
                     onChange={(e) => setReceiptSettings({ ...receiptSettings, footer: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all min-h-[100px]"
+                    className="pro-input min-h-[100px] py-4"
                   />
                 </div>
-              </div>
 
-              <button
-                onClick={saveSettings}
-                className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-primary-dark transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 size={20} />
-                Simpan Pengaturan
-              </button>
+                <button
+                  onClick={saveSettings}
+                  className="pro-button w-full flex items-center justify-center gap-2 py-4"
+                >
+                  <Save size={20} />
+                  Simpan Pengaturan
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

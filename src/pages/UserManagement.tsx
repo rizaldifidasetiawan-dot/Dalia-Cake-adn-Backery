@@ -85,11 +85,11 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <header className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-primary">Manajemen User</h1>
-          <p className="text-gray-500">Kelola akses staff dan admin</p>
+    <div className="space-y-8 pb-20">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-serif font-bold text-primary">User Management</h1>
+          <p className="text-stone-500 text-sm">Kelola hak akses dan akun pengguna sistem Dalia Bakery.</p>
         </div>
         <button
           onClick={() => {
@@ -97,7 +97,7 @@ const UserManagement: React.FC = () => {
             setFormData({ username: '', password: '', displayName: '', role: 'staff' });
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 bg-primary text-white py-3 px-6 rounded-full hover:bg-primary-dark transition-all shadow-md"
+          className="pro-button flex items-center justify-center gap-2"
         >
           <UserPlus size={20} />
           Tambah User
@@ -109,50 +109,71 @@ const UserManagement: React.FC = () => {
           <motion.div
             layout
             key={u.id}
-            className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 group"
+            className="pro-card p-6 group relative overflow-hidden"
           >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-4">
                 <div className={cn(
-                  "p-3 rounded-2xl",
-                  u.role === 'admin' ? "bg-pink-100 text-pink-600" : "bg-blue-100 text-blue-600"
+                  "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl border shadow-sm",
+                  u.role === 'admin' 
+                    ? "bg-primary-light text-primary border-pink-100" 
+                    : "bg-blue-50 text-blue-600 border-blue-100"
                 )}>
-                  <Shield size={20} />
+                  {u.displayName[0]}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800">{u.displayName}</h3>
-                  <p className="text-sm text-gray-500">@{u.username}</p>
+                  <h3 className="font-serif font-bold text-lg text-stone-800">{u.displayName}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">@{u.username}</span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border",
+                      u.role === 'admin' 
+                        ? "bg-primary-light text-primary border-pink-100" 
+                        : u.role === 'kasir'
+                        ? "bg-blue-50 text-blue-500 border-blue-100"
+                        : "bg-stone-100 text-stone-500 border-stone-200"
+                    )}>
+                      {u.role}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
                 <button 
                   onClick={() => {
                     setEditingUser(u);
                     setFormData({ username: u.username, password: u.password, displayName: u.displayName, role: u.role });
                     setIsModalOpen(true);
                   }}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                  className="p-2 text-stone-400 hover:text-primary hover:bg-primary-light rounded-xl transition-all"
                 >
                   <Edit2 size={16} />
                 </button>
                 {u.username !== 'Dalia' && (
                   <button 
                     onClick={() => handleDeleteClick(u.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                    className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                   >
                     <Trash2 size={16} />
                   </button>
                 )}
               </div>
             </div>
+
             {deleteError && userToDelete === u.id && (
-              <div className="mb-4 p-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg text-center animate-pulse">
+              <div className="mb-4 p-3 bg-red-50 text-red-600 text-[10px] font-bold rounded-xl text-center border border-red-100 animate-pulse">
                 {deleteError}
               </div>
             )}
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400">
-              <Key size={12} />
-              <span>Password: {u.password}</span>
+
+            <div className="p-4 bg-stone-50/50 rounded-2xl border border-stone-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1">
+                  <Key size={10} />
+                  Password
+                </span>
+                <span className="font-mono text-xs text-stone-600 font-bold">{u.password}</span>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -160,69 +181,81 @@ const UserManagement: React.FC = () => {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden"
+              className="relative bg-white w-full max-w-md pro-card overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-primary-light">
-                <h2 className="text-xl font-bold text-primary">
+              <div className="p-6 border-b border-stone-50 flex justify-between items-center bg-stone-50/50">
+                <h2 className="text-xl font-serif font-bold text-stone-800">
                   {editingUser ? 'Edit User' : 'Tambah User Baru'}
                 </h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-full">
+                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-xl transition-colors text-stone-400">
                   <X size={20} />
                 </button>
               </div>
               <form onSubmit={handleSubmit} className="p-8 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Nama Lengkap</label>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Nama Lengkap</label>
                   <input
                     required
                     type="text"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none"
+                    className="pro-input"
+                    placeholder="Contoh: Ahmad Kasir"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Username</label>
-                  <input
-                    required
-                    type="text"
-                    disabled={editingUser?.username === 'Dalia'}
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none disabled:bg-gray-50"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Username</label>
+                    <input
+                      required
+                      type="text"
+                      disabled={editingUser?.username === 'Dalia'}
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      className="pro-input disabled:bg-stone-50 disabled:text-stone-400"
+                      placeholder="username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Role</label>
+                    <select
+                      disabled={editingUser?.username === 'Dalia'}
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                      className="pro-input bg-white disabled:bg-stone-50 disabled:text-stone-400"
+                    >
+                      <option value="staff">Staff</option>
+                      <option value="kasir">Kasir</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Password</label>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Password</label>
                   <input
                     required
                     type="text"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none"
+                    className="pro-input"
+                    placeholder="••••••••"
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-600 uppercase tracking-wider">Role</label>
-                  <select
-                    disabled={editingUser?.username === 'Dalia'}
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none bg-white disabled:bg-gray-50"
-                  >
-                    <option value="staff">Staff</option>
-                    <option value="kasir">Kasir</option>
-                    <option value="admin">Admin</option>
-                  </select>
                 </div>
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 rounded-2xl font-bold hover:bg-primary-dark transition-all shadow-lg"
+                  className="pro-button w-full flex items-center justify-center gap-2 py-4"
                 >
                   <Save size={20} />
                   Simpan User
@@ -236,28 +269,35 @@ const UserManagement: React.FC = () => {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {isDeleteModalOpen && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-8 text-center"
+              className="relative bg-white w-full max-w-sm pro-card p-8 text-center"
             >
-              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 size={32} />
+              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-inner">
+                <Trash2 size={40} />
               </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Hapus User?</h2>
-              <p className="text-gray-500 mb-6">Tindakan ini tidak dapat dibatalkan.</p>
-              <div className="flex gap-3">
+              <h2 className="text-2xl font-serif font-bold text-stone-800 mb-2">Hapus User?</h2>
+              <p className="text-stone-500 text-sm mb-8">Tindakan ini tidak dapat dibatalkan dan user akan kehilangan akses sistem.</p>
+              <div className="flex gap-4">
                 <button
                   onClick={() => setIsDeleteModalOpen(false)}
-                  className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-all"
+                  className="flex-1 py-4 rounded-2xl font-bold text-stone-400 hover:bg-stone-50 transition-all uppercase tracking-widest text-[10px]"
                 >
                   Batal
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-100"
+                  className="flex-1 py-4 rounded-2xl font-bold bg-red-500 text-white hover:bg-red-600 transition-all shadow-lg shadow-red-100 uppercase tracking-widest text-[10px]"
                 >
                   Hapus
                 </button>

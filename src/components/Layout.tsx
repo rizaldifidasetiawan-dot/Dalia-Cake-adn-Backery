@@ -79,35 +79,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white rounded-[40px] shadow-2xl p-10 text-center border border-pink-100 relative z-10"
+          className="max-w-md w-full pro-card p-10 text-center relative z-10"
         >
-          <div className="w-48 h-48 bg-primary-light rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border-4 border-white">
-            <Logo size={120} className="text-primary" />
+          <div className="w-40 h-40 bg-primary-light rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border-4 border-white">
+            <Logo size={100} className="text-primary" />
           </div>
-          <h1 className="text-4xl font-serif font-bold text-primary mb-2">Dalia Bakery</h1>
-          <p className="text-gray-500 mb-8 font-medium">Sistem Manajemen Resep & HPP</p>
+          <h1 className="text-4xl font-serif font-bold text-primary mb-1">Dalia Bakery</h1>
+          <p className="text-stone-400 mb-10 font-medium text-sm uppercase tracking-[0.2em]">Management System</p>
           
-          <form onSubmit={handleLogin} className="space-y-4 text-left">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Username</label>
+          <form onSubmit={handleLogin} className="space-y-5 text-left">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Username</label>
               <input
                 required
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-5 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                className="pro-input"
                 placeholder="Masukkan username"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Password</label>
               <div className="relative">
                 <input
                   required
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-5 py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all pr-12"
+                  className="pro-input pr-12"
                   placeholder="Masukkan password"
                 />
                 <button
@@ -117,22 +117,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onMouseLeave={() => setShowPassword(false)}
                   onTouchStart={() => setShowPassword(true)}
                   onTouchEnd={() => setShowPassword(false)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors p-1"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-primary transition-colors p-1"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            {error && <p className="text-red-500 text-xs font-bold text-center">{error}</p>}
+            {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 px-6 rounded-2xl hover:bg-primary-dark transition-all font-bold shadow-lg shadow-pink-200 mt-4"
+              className="w-full flex items-center justify-center gap-2 bg-primary text-white py-4 px-6 rounded-2xl hover:bg-primary-dark transition-all font-bold shadow-lg shadow-pink-200/50 mt-6"
             >
               <LogIn size={20} />
               Masuk ke Aplikasi
             </button>
           </form>
-          <p className="mt-8 text-xs text-gray-400">© 2026 Dalia Cake & Bakery</p>
+          <p className="mt-10 text-[10px] text-stone-300 uppercase tracking-widest">© 2026 Dalia Cake & Bakery</p>
         </motion.div>
       </div>
     );
@@ -141,18 +141,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-paper flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-72 bg-white border-r border-pink-100 p-8 sticky top-0 h-screen">
+      <aside className="hidden md:flex flex-col w-72 bg-white border-r border-line p-8 sticky top-0 h-screen">
         <div className="flex items-center gap-4 mb-12 px-2">
-          <div className="p-2 bg-primary-light rounded-2xl border border-pink-100">
-            <Logo size={60} className="text-primary" />
+          <div className="p-2 bg-primary-light rounded-2xl border border-line">
+            <Logo size={50} className="text-primary" />
           </div>
           <div>
             <h2 className="font-serif font-bold text-2xl text-primary leading-none">Dalia</h2>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Cake & Bakery</p>
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Cake & Bakery</p>
           </div>
         </div>
         
-        <nav className="flex-1 space-y-2">
+        <nav className="flex-1 space-y-1.5">
           {navItems.map((item) => {
             const isActive = item.path === '/' 
               ? location.pathname === '/' 
@@ -163,27 +163,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300",
+                  "flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300",
                   isActive 
-                    ? "bg-primary text-white shadow-lg shadow-pink-200 translate-x-1" 
-                    : "text-gray-500 hover:bg-primary-light hover:text-primary"
+                    ? "bg-primary text-white shadow-lg shadow-pink-200/50 translate-x-1" 
+                    : "text-stone-500 hover:bg-stone-50 hover:text-primary"
                 )}
               >
-                <item.icon size={22} />
-                <span className="font-bold">{item.name}</span>
+                <item.icon size={20} />
+                <span className="font-semibold text-sm">{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-auto pt-8 border-t border-pink-50">
+        <div className="mt-auto pt-8 border-t border-line">
           <div className="flex items-center gap-4 px-2 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-primary-light flex items-center justify-center text-primary font-bold text-xl border-2 border-white shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-primary-light flex items-center justify-center text-primary font-bold text-lg border border-line shadow-sm">
               {user.displayName[0]}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-bold text-gray-800 truncate">{user.displayName}</p>
-              <div className="flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-widest">
+              <p className="text-sm font-bold text-stone-800 truncate">{user.displayName}</p>
+              <div className="flex items-center gap-1 text-[9px] font-bold text-primary uppercase tracking-widest">
                 <Shield size={10} />
                 <span>{user.role}</span>
               </div>
@@ -191,9 +191,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-bold"
+            className="w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-bold text-sm"
           >
-            <LogOut size={22} />
+            <LogOut size={20} />
             <span>Keluar</span>
           </button>
         </div>

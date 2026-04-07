@@ -19,6 +19,7 @@ const HPP: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [packingCost, setPackingCost] = useState<number>(0);
   const [profitPercentage, setProfitPercentage] = useState<number>(30);
+  const [totalUnit, setTotalUnit] = useState<number>(1);
   const [expandedRecipes, setExpandedRecipes] = useState<string[]>([]);
   const [tempValues, setTempValues] = useState<Record<string, string>>({});
 
@@ -105,6 +106,8 @@ const HPP: React.FC = () => {
   const profitAmount = (totalCost * profitPercentage) / 100;
   const sellingPrice = totalCost + profitAmount;
 
+  const pricePerUnit = totalUnit > 0 ? sellingPrice / totalUnit : 0;
+
   const totalYield = selectedRecipes.reduce((total, item) => {
     const recipe = recipes.find(r => r.id === item.recipeId);
     if (recipe) {
@@ -113,7 +116,7 @@ const HPP: React.FC = () => {
     return total;
   }, 0);
 
-  const pricePerPiece = totalYield > 0 ? sellingPrice / totalYield : 0;
+  const pricePerPiece = totalYield > 0 ? sellingPrice / totalYield : 0; // Keeping this for reference if needed, but we'll use pricePerUnit for the display requested
 
   const toggleRecipeExpand = (recipeId: string) => {
     setExpandedRecipes(prev => 
@@ -243,6 +246,31 @@ const HPP: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest opacity-70">Total Unit</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={tempValues['totalUnit'] !== undefined ? tempValues['totalUnit'] : (totalUnit === 0 ? '' : totalUnit.toString())}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setTempValues(prev => ({ ...prev, totalUnit: val }));
+                          setTotalUnit(val === '' ? 0 : parseFloat(val));
+                        }
+                      }}
+                      onBlur={() => setTempValues(prev => {
+                        const n = { ...prev };
+                        delete n.totalUnit;
+                        return n;
+                      })}
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl outline-none focus:bg-white/20 transition-all font-mono"
+                      placeholder="1"
+                    />
+                  </div>
+                </div>
+
                 <div className="pt-6 border-t border-white/20">
                   <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">Total Modal (HPP + Packing)</p>
                   <p className="text-2xl font-mono font-bold text-[#f5f5f0]">{formatCurrency(totalCost)}</p>
@@ -254,9 +282,9 @@ const HPP: React.FC = () => {
                 </div>
 
                 <div className="pt-4 border-t border-white/10">
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">Estimasi Harga Jual per Pcs</p>
-                  <p className="text-2xl font-mono font-bold text-white/90">{formatCurrency(pricePerPiece)}</p>
-                  <p className="text-[10px] opacity-50 italic">Total Yield: {totalYield} unit</p>
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">Estimasi Harga Jual per Unit</p>
+                  <p className="text-2xl font-mono font-bold text-white/90">{formatCurrency(pricePerUnit)}</p>
+                  <p className="text-[10px] opacity-50 italic">Berdasarkan {totalUnit} unit</p>
                 </div>
               </div>
 

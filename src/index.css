@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -9,22 +9,47 @@
   --color-primary: #DB2777; /* Pink-600 */
   --color-primary-light: #FDF2F8; /* Pink-50 */
   --color-primary-dark: #9D174D; /* Pink-800 */
-  --color-paper: #FFF5F7; /* Very light pink/white */
+  --color-paper: #FAFAF9; /* Stone-50 - cleaner than pink-white */
+  --color-ink: #1C1917; /* Stone-900 */
+  --color-line: #E7E5E4; /* Stone-200 */
 }
 
 @layer base {
   body {
-    @apply font-sans bg-paper text-gray-900;
+    @apply font-sans bg-paper text-ink antialiased;
   }
   
   h1, h2, h3, h4, .font-serif {
-    @apply font-serif;
+    @apply font-serif tracking-tight;
+  }
+
+  /* Professional Typography Defaults */
+  h1 { @apply text-4xl font-bold; }
+  h2 { @apply text-2xl font-semibold; }
+  h3 { @apply text-xl font-semibold; }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+  
+  .pro-card {
+    @apply bg-white border border-line rounded-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all;
+  }
+
+  .pro-button {
+    @apply px-6 py-2.5 rounded-full font-medium transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .pro-input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-line bg-stone-50/50 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -32,21 +57,23 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+  @apply bg-stone-300 rounded-full hover:bg-stone-400 transition-colors;
 }
 
 /* Print Styles */
 @media print {
-  aside, header, button, .no-print {
+  aside, header, nav, button, .no-print {
     display: none !important;
   }
   main {
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
   }
-  .bg-white {
+  .pro-card {
     box-shadow: none !important;
-    border: none !important;
+    border: 1px solid #eee !important;
+    border-radius: 0 !important;
   }
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { Recipe, Ingredient } from '../types';
-import { UtensilsCrossed, Calculator, Scale, Info, Search } from 'lucide-react';
+import { UtensilsCrossed, Calculator, Scale, Info, Search, ChefHat } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -63,52 +63,74 @@ const MakeRecipe: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      <header>
-        <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3">
-          <UtensilsCrossed size={32} />
-          Buat Resep
-        </h1>
-        <p className="text-gray-500">Pilih resep dan tentukan jumlah porsi yang ingin dibuat.</p>
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3">
+            <UtensilsCrossed size={32} />
+            Buat Resep
+          </h1>
+          <p className="text-stone-500 text-sm">Pilih resep dan tentukan jumlah porsi yang ingin dibuat untuk melihat kebutuhan bahan baku.</p>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recipe Selection Sidebar */}
         <div className="space-y-6">
-          <section className="bg-white p-6 rounded-[32px] shadow-sm border border-pink-50 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Search size={20} className="text-primary" />
-              Pilih Resep
-            </h2>
+          <section className="pro-card p-6 md:p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-light text-primary rounded-xl">
+                <ChefHat size={20} />
+              </div>
+              <h2 className="text-lg font-serif font-bold text-stone-800">Pilih Resep</h2>
+            </div>
+            
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
               <input
                 type="text"
                 placeholder="Cari resep..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                className="pro-input pl-12 py-3 text-sm"
               />
             </div>
+
             <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
               {filteredRecipes.map(recipe => (
                 <button
                   key={recipe.id}
                   onClick={() => setSelectedRecipeId(recipe.id)}
                   className={cn(
-                    "w-full text-left p-4 rounded-2xl transition-all border",
+                    "w-full text-left p-4 rounded-2xl transition-all border group",
                     selectedRecipeId === recipe.id
-                      ? "bg-primary text-white border-primary shadow-md"
-                      : "bg-gray-50 text-gray-700 border-transparent hover:border-pink-200 hover:bg-pink-50"
+                      ? "bg-primary text-white border-primary shadow-lg shadow-pink-200/50 translate-x-1"
+                      : "bg-stone-50/50 text-stone-700 border-stone-100 hover:border-pink-200 hover:bg-primary-light hover:text-primary"
                   )}
                 >
-                  <p className="font-bold">{recipe.name}</p>
-                  <p className={cn("text-xs opacity-70", selectedRecipeId === recipe.id ? "text-white" : "text-gray-500")}>
-                    {recipe.category} • Yield: {recipe.yield} {recipe.yieldUnit}
-                  </p>
+                  <p className="font-bold text-sm leading-tight mb-1">{recipe.name}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border",
+                      selectedRecipeId === recipe.id 
+                        ? "bg-white/20 border-white/30 text-white" 
+                        : "bg-white border-stone-100 text-stone-400 group-hover:border-pink-100 group-hover:text-primary"
+                    )}>
+                      {recipe.category}
+                    </span>
+                    <span className={cn(
+                      "text-[8px] font-bold uppercase tracking-widest opacity-60",
+                      selectedRecipeId === recipe.id ? "text-white" : "text-stone-400"
+                    )}>
+                      Yield: {recipe.yield} {recipe.yieldUnit}
+                    </span>
+                  </div>
                 </button>
               ))}
               {filteredRecipes.length === 0 && (
-                <p className="text-center text-gray-400 py-4 italic text-sm">Resep tidak ditemukan.</p>
+                <div className="py-10 text-center space-y-2">
+                  <Search size={32} className="mx-auto text-stone-200" />
+                  <p className="text-stone-400 font-serif italic text-xs">Resep tidak ditemukan.</p>
+                </div>
               )}
             </div>
           </section>
@@ -117,33 +139,42 @@ const MakeRecipe: React.FC = () => {
             <motion.section 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-primary text-white p-8 rounded-[32px] shadow-xl space-y-6"
+              className="pro-card p-8 bg-stone-900 text-white border-stone-800 space-y-6"
             >
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Calculator size={24} />
-                Jumlah Adonan
-              </h2>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest opacity-70">Jumlah Produksi (Multiplier)</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={multiplierInput}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(',', '.');
-                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                        setMultiplierInput(val);
-                      }
-                    }}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl outline-none focus:bg-white/20 transition-all font-bold text-2xl"
-                    placeholder="0"
-                  />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-stone-800 text-primary rounded-xl">
+                  <Calculator size={24} />
                 </div>
-                <div className="pt-4 border-t border-white/20 space-y-2">
-                  <div className="flex justify-between text-sm opacity-70">
-                    <span>Hasil Akhir</span>
-                    <span>{(selectedRecipe.yield * multiplier).toFixed(2)} {selectedRecipe.yieldUnit}</span>
+                <h2 className="text-xl font-serif font-bold">Jumlah Adonan</h2>
+              </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 ml-1">Multiplier Produksi</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={multiplierInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(',', '.');
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setMultiplierInput(val);
+                        }
+                      }}
+                      className="w-full px-6 py-5 bg-stone-800 border border-stone-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary transition-all font-mono font-bold text-3xl text-primary"
+                      placeholder="0"
+                    />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-stone-500 font-bold text-sm">
+                      x Lipat
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-6 border-t border-stone-800 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Estimasi Hasil Akhir</span>
+                    <span className="font-mono font-bold text-lg text-stone-300">
+                      {(selectedRecipe.yield * multiplier).toLocaleString()} {selectedRecipe.yieldUnit}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -162,32 +193,50 @@ const MakeRecipe: React.FC = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
-                <section className="bg-white p-8 rounded-[32px] shadow-sm border border-pink-50">
-                  <div className="flex items-center justify-between mb-8">
-                    <div>
-                      <h2 className="text-2xl font-serif font-bold text-primary">{selectedRecipe.name}</h2>
-                      <p className="text-gray-500">Daftar bahan baku yang dibutuhkan untuk {multiplier}x resep</p>
+                <section className="pro-card p-8 md:p-10">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 bg-primary-light text-primary text-[10px] font-bold uppercase tracking-widest rounded-full border border-pink-100">
+                          {selectedRecipe.category}
+                        </span>
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                          {multiplier}x Produksi
+                        </span>
+                      </div>
+                      <h2 className="text-3xl font-serif font-bold text-stone-800">{selectedRecipe.name}</h2>
                     </div>
-                    <div className="bg-pink-50 px-4 py-2 rounded-full border border-pink-100">
-                      <span className="text-primary font-bold">{multiplier}x Porsi</span>
+                    <div className="flex items-center gap-4 p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                      <div className="p-3 bg-white rounded-xl shadow-sm text-primary">
+                        <Scale size={24} />
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Total Bahan Baku</p>
+                        <p className="font-bold text-stone-700">{scaledIngredients.length} Macam</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-gray-100">
+                  <div className="overflow-hidden rounded-[24px] border border-stone-100">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-gray-50">
-                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Bahan Baku</th>
-                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Jumlah</th>
+                        <tr className="bg-stone-50/50">
+                          <th className="px-8 py-5 text-[10px] font-bold text-stone-400 uppercase tracking-widest">Bahan Baku</th>
+                          <th className="px-8 py-5 text-[10px] font-bold text-stone-400 uppercase tracking-widest text-right">Kebutuhan</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-stone-50">
                         {scaledIngredients.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 font-medium text-gray-700">{item.name}</td>
-                            <td className="px-6 py-4 text-right">
-                              <span className="font-mono font-bold text-primary">{item.amount.toLocaleString()}</span>
-                              <span className="text-xs text-gray-400 ml-1">{item.unit}</span>
+                          <tr key={idx} className="hover:bg-stone-50/30 transition-colors group">
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary/30 group-hover:bg-primary transition-colors"></div>
+                                <span className="font-bold text-stone-700">{item.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <span className="font-mono font-bold text-lg text-primary">{item.amount.toLocaleString()}</span>
+                              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-2">{item.unit}</span>
                             </td>
                           </tr>
                         ))}
@@ -197,13 +246,15 @@ const MakeRecipe: React.FC = () => {
                 </section>
 
                 {selectedRecipe.instructions && (
-                  <section className="bg-white p-8 rounded-[32px] shadow-sm border border-pink-50">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <Info size={20} className="text-primary" />
-                      Instruksi Pembuatan
-                    </h3>
-                    <div className="prose prose-pink max-w-none">
-                      <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">
+                  <section className="pro-card p-8 md:p-10">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-stone-50 text-stone-400 rounded-xl">
+                        <Info size={20} />
+                      </div>
+                      <h3 className="text-xl font-serif font-bold text-stone-800">Instruksi Pembuatan</h3>
+                    </div>
+                    <div className="p-8 bg-stone-50/50 rounded-[32px] border border-stone-100">
+                      <p className="text-stone-600 whitespace-pre-wrap leading-relaxed font-medium">
                         {selectedRecipe.instructions}
                       </p>
                     </div>
@@ -211,12 +262,12 @@ const MakeRecipe: React.FC = () => {
                 )}
               </motion.div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white rounded-[32px] border border-dashed border-pink-200">
-                <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-6">
-                  <UtensilsCrossed size={40} className="text-primary opacity-40" />
+              <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-center p-12 pro-card border-dashed border-stone-200 bg-stone-50/30">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-xl shadow-stone-200/50 border border-stone-100">
+                  <UtensilsCrossed size={48} className="text-primary opacity-20" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Belum Ada Resep Terpilih</h3>
-                <p className="text-gray-500 max-w-xs">Silakan pilih resep dari daftar di samping untuk mulai menghitung kebutuhan bahan.</p>
+                <h3 className="text-2xl font-serif font-bold text-stone-800 mb-3">Belum Ada Resep Terpilih</h3>
+                <p className="text-stone-500 max-w-sm leading-relaxed">Silakan pilih resep dari daftar di samping untuk mulai menghitung kebutuhan bahan baku produksi Anda.</p>
               </div>
             )}
           </AnimatePresence>

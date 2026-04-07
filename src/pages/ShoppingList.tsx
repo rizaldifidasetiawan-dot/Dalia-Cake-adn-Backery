@@ -208,49 +208,52 @@ const ShoppingList: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recipe Selection */}
         <div className={cn("lg:col-span-1 space-y-6", isGenerated && "hidden lg:block")}>
-          <section className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <section className="pro-card p-8">
+            <h2 className="text-xl font-serif font-bold text-stone-800 mb-6 flex items-center gap-2">
               <Plus size={20} className="text-primary" />
               Pilih Resep
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 max-h-[300px] lg:max-h-[400px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 gap-2 max-h-[300px] lg:max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {recipes.map(recipe => (
                 <button
                   key={recipe.id}
                   onClick={() => handleAddRecipe(recipe.id)}
-                  className="w-full text-left p-4 rounded-2xl border border-gray-50 hover:border-primary hover:bg-primary-light transition-all group"
+                  className="w-full text-left p-4 rounded-2xl border border-stone-50 hover:border-primary hover:bg-primary-light transition-all group"
                 >
-                  <p className="font-bold text-gray-700 group-hover:text-primary text-sm">{recipe.name}</p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest">{recipe.category}</p>
+                  <p className="font-bold text-stone-700 group-hover:text-primary text-sm">{recipe.name}</p>
+                  <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-1">{recipe.category}</p>
                 </button>
               ))}
             </div>
           </section>
 
-          <section className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">Resep Terpilih</h2>
-              <span className="bg-primary-light text-primary text-xs font-bold px-2 py-1 rounded-full">
-                {selectedRecipes.length}
+          <section className="pro-card p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-serif font-bold text-stone-800">Resep Terpilih</h2>
+              <span className="bg-primary-light text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
+                {selectedRecipes.length} Resep
               </span>
             </div>
-            <div className="space-y-3 max-h-[200px] lg:max-h-none overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[200px] lg:max-h-none overflow-y-auto pr-2 custom-scrollbar">
               {selectedRecipes.length === 0 ? (
-                <p className="text-center text-gray-400 py-4 italic text-sm">Belum ada resep dipilih.</p>
+                <div className="text-center py-12 bg-stone-50/50 rounded-[24px] border-2 border-dashed border-stone-100">
+                  <ShoppingCart size={32} className="mx-auto text-stone-200 mb-2" />
+                  <p className="text-stone-400 text-xs font-medium italic">Belum ada resep dipilih.</p>
+                </div>
               ) : (
                 selectedRecipes.map(sr => {
                   const r = recipes.find(rec => rec.id === sr.recipeId);
                   return (
-                    <div key={sr.recipeId} className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div key={sr.recipeId} className="flex items-center justify-between gap-3 p-4 bg-stone-50/50 rounded-2xl border border-stone-100 group hover:bg-white hover:shadow-md transition-all">
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-xs text-gray-700 truncate">{r?.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, -1)} className="p-1 hover:bg-white rounded-full text-gray-500"><Minus size={12} /></button>
-                          <span className="text-xs font-bold text-primary w-8 text-center">{sr.multiplier}x</span>
-                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, 1)} className="p-1 hover:bg-white rounded-full text-gray-500"><Plus size={12} /></button>
+                        <p className="font-bold text-sm text-stone-800 truncate leading-tight">{r?.name}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, -1)} className="p-1.5 hover:bg-primary-light hover:text-primary rounded-lg text-stone-400 transition-colors"><Minus size={14} /></button>
+                          <span className="text-xs font-mono font-bold text-primary w-10 text-center bg-white py-1 rounded-lg border border-stone-100">{sr.multiplier}x</span>
+                          <button onClick={() => handleUpdateMultiplier(sr.recipeId, 1)} className="p-1.5 hover:bg-primary-light hover:text-primary rounded-full text-stone-400 transition-colors"><Plus size={14} /></button>
                         </div>
                       </div>
-                      <button onClick={() => handleRemoveRecipe(sr.recipeId)} className="p-2 text-red-500 hover:bg-white rounded-full"><Trash2 size={14} /></button>
+                      <button onClick={() => handleRemoveRecipe(sr.recipeId)} className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={16} /></button>
                     </div>
                   );
                 })
@@ -259,7 +262,7 @@ const ShoppingList: React.FC = () => {
             {selectedRecipes.length > 0 && (
               <button
                 onClick={() => setIsGenerated(true)}
-                className="w-full mt-6 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-primary-dark transition-all flex items-center justify-center gap-2"
+                className="pro-button w-full mt-8 flex items-center justify-center gap-3 py-4"
               >
                 <ShoppingCart size={20} />
                 Generate Daftar Belanja
@@ -276,51 +279,51 @@ const ShoppingList: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="bg-white p-5 md:p-8 rounded-[32px] shadow-xl border border-gray-100"
+                className="pro-card p-8 md:p-10"
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-10">
                   <div>
-                    <h2 className="text-xl md:text-2xl font-serif font-bold text-primary">Daftar Belanja</h2>
-                    <p className="text-xs md:text-sm text-gray-500">Berdasarkan {selectedRecipes.length} resep</p>
+                    <h2 className="text-2xl font-serif font-bold text-primary">Daftar Belanja</h2>
+                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Berdasarkan {selectedRecipes.length} resep terpilih</p>
                   </div>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setIsGenerated(false)} 
-                      className="lg:hidden p-3 bg-gray-100 text-gray-500 rounded-full"
+                      className="lg:hidden p-3 bg-stone-100 text-stone-500 rounded-full hover:bg-stone-200 transition-colors"
                     >
                       <Plus size={20} />
                     </button>
-                    <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-3 bg-primary-light text-primary rounded-full font-bold hover:bg-pink-100 transition-colors text-sm">
+                    <button onClick={handlePrint} className="pro-button flex items-center gap-2 px-6">
                       <Printer size={18} />
-                      <span className="hidden sm:inline">Cetak</span>
+                      <span className="hidden sm:inline">Cetak Daftar</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-1 mb-8">
-                  <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                <div className="space-y-1 mb-10">
+                  <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-50">
                     <div className="col-span-5">Bahan Baku</div>
                     <div className="col-span-2 text-center">Butuh</div>
                     <div className="col-span-2 text-center">Stok Ada</div>
                     <div className="col-span-3 text-right">Beli & Estimasi</div>
                   </div>
                   {shoppingItems.map((item, idx) => (
-                    <div key={idx} className="flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors rounded-xl group">
-                      <div className="col-span-5 flex items-center gap-3">
-                        <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center group-hover:border-primary transition-colors shrink-0">
-                          <div className="w-2.5 h-2.5 rounded-full bg-primary opacity-0 group-hover:opacity-20"></div>
+                    <div key={idx} className="flex flex-col md:grid md:grid-cols-12 md:items-center gap-3 md:gap-4 p-6 border-b border-stone-50 hover:bg-stone-50/50 transition-colors rounded-2xl group">
+                      <div className="col-span-5 flex items-center gap-4">
+                        <div className="w-6 h-6 rounded-full border-2 border-stone-100 flex items-center justify-center group-hover:border-primary transition-colors shrink-0">
+                          <div className="w-2.5 h-2.5 rounded-full bg-primary opacity-0 group-hover:opacity-20 transition-opacity"></div>
                         </div>
-                        <p className="font-bold text-sm md:text-base text-gray-800 truncate">{item.name}</p>
+                        <p className="font-bold text-sm md:text-base text-stone-800 truncate">{item.name}</p>
                       </div>
                       
                       <div className="col-span-2 flex md:flex-col justify-between items-center md:items-center">
-                        <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase">Butuh</span>
-                        <p className="text-xs md:text-sm text-gray-500 font-medium">{item.amount} {item.unit}</p>
+                        <span className="md:hidden text-[10px] font-bold text-stone-400 uppercase tracking-widest">Butuh</span>
+                        <p className="text-xs md:text-sm text-stone-500 font-bold font-mono">{item.amount} {item.unit}</p>
                       </div>
 
                       <div className="col-span-2 flex md:flex-col justify-between items-center">
-                        <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase">Stok Ada</span>
-                        <div className="relative w-24 md:w-full">
+                        <span className="md:hidden text-[10px] font-bold text-stone-400 uppercase tracking-widest">Stok Ada</span>
+                        <div className="relative w-28 md:w-full">
                           <input
                             type="text"
                             inputMode="decimal"
@@ -332,39 +335,41 @@ const ShoppingList: React.FC = () => {
                               }
                             }}
                             placeholder="0"
-                            className="w-full px-2 py-1 text-center bg-white border border-gray-100 rounded-lg outline-none text-xs font-bold focus:border-primary transition-colors"
+                            className="w-full px-3 py-2 text-center bg-white border border-stone-100 rounded-xl outline-none text-xs font-bold font-mono focus:border-primary transition-all"
                           />
-                          <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 font-bold">{item.unit}</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-stone-400 font-bold uppercase">{item.unit}</span>
                         </div>
                       </div>
 
                       <div className="col-span-3 flex md:flex-col justify-between items-center md:items-end">
-                        <span className="md:hidden text-[10px] font-bold text-primary uppercase">Beli & Estimasi</span>
+                        <span className="md:hidden text-[10px] font-bold text-primary uppercase tracking-widest">Beli & Estimasi</span>
                         <div className="text-right">
-                          <p className="font-bold text-sm text-primary">{item.amountToBuy} {item.unit}</p>
-                          <p className="font-mono font-bold text-xs text-gray-700">{formatCurrency(item.finalCost)}</p>
+                          <p className="font-bold text-sm text-primary font-mono">{item.amountToBuy} {item.unit}</p>
+                          <p className="font-mono font-bold text-[10px] text-stone-400 mt-0.5">{formatCurrency(item.finalCost)}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-primary-light p-5 md:p-6 rounded-2xl flex items-center justify-between">
+                <div className="bg-stone-900 text-white p-8 rounded-[32px] flex items-center justify-between shadow-xl border border-stone-800">
                   <div>
-                    <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-widest">Total Estimasi</p>
-                    <p className="text-2xl md:text-3xl font-mono font-bold text-primary">{formatCurrency(totalEstimated)}</p>
+                    <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Total Estimasi Belanja</p>
+                    <p className="text-3xl md:text-4xl font-mono font-bold text-primary tracking-tighter">{formatCurrency(totalEstimated)}</p>
                   </div>
-                  <CheckCircle2 size={40} className="text-primary opacity-20" />
+                  <div className="w-16 h-16 bg-stone-800 rounded-2xl flex items-center justify-center text-primary shadow-inner border border-stone-700">
+                    <CheckCircle2 size={32} />
+                  </div>
                 </div>
               </motion.div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center p-12 bg-white/50 rounded-[32px] border-2 border-dashed border-gray-200 text-center">
-                <div className="p-6 bg-white rounded-full shadow-sm mb-4">
-                  <ShoppingCart size={48} className="text-gray-300" />
+              <div className="h-full flex flex-col items-center justify-center p-12 bg-stone-50/30 rounded-[40px] border-2 border-dashed border-stone-100 text-center">
+                <div className="w-24 h-24 bg-white rounded-full shadow-sm mb-6 flex items-center justify-center text-stone-200 border border-stone-50">
+                  <ShoppingCart size={48} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-400">Daftar Belanja Belum Dibuat</h3>
-                <p className="text-gray-400 max-w-xs mx-auto mt-2 text-sm">
-                  Pilih beberapa resep di sebelah kiri dan klik tombol "Generate" untuk melihat daftar belanjaan Anda.
+                <h3 className="text-2xl font-serif font-bold text-stone-300">Daftar Belanja Belum Dibuat</h3>
+                <p className="text-stone-400 max-w-xs mx-auto mt-3 text-sm leading-relaxed">
+                  Pilih beberapa resep di sebelah kiri dan klik tombol <span className="text-primary font-bold">Generate</span> untuk melihat daftar belanjaan Anda secara otomatis.
                 </p>
               </div>
             )}
