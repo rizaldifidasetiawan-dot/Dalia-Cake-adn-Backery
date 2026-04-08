@@ -139,13 +139,13 @@ const MakeRecipe: React.FC = () => {
             <motion.section 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="pro-card p-8 bg-stone-900 text-white border-stone-800 space-y-6"
+              className="pro-card p-8 bg-white border-line space-y-6 shadow-sm"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-stone-800 text-primary rounded-xl">
+                <div className="p-2 bg-primary-light text-primary rounded-xl">
                   <Calculator size={24} />
                 </div>
-                <h2 className="text-xl font-serif font-bold">Jumlah Adonan</h2>
+                <h2 className="text-xl font-serif font-bold text-stone-800">Jumlah Adonan</h2>
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
@@ -161,18 +161,18 @@ const MakeRecipe: React.FC = () => {
                           setMultiplierInput(val);
                         }
                       }}
-                      className="w-full px-6 py-5 bg-stone-800 border border-stone-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary transition-all font-mono font-bold text-3xl text-primary"
+                      className="w-full px-6 py-5 bg-stone-50 border border-stone-100 rounded-2xl outline-none focus:ring-2 focus:ring-primary transition-all font-mono font-bold text-3xl text-primary"
                       placeholder="0"
                     />
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-stone-500 font-bold text-sm">
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-sm">
                       x Lipat
                     </div>
                   </div>
                 </div>
-                <div className="pt-6 border-t border-stone-800 space-y-3">
+                <div className="pt-6 border-t border-stone-100 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Estimasi Hasil Akhir</span>
-                    <span className="font-mono font-bold text-lg text-stone-300">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Estimasi Hasil Akhir</span>
+                    <span className="font-mono font-bold text-lg text-primary">
                       {(selectedRecipe.yield * multiplier).toLocaleString()} {selectedRecipe.yieldUnit}
                     </span>
                   </div>

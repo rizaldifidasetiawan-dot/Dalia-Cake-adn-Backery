@@ -65,9 +65,10 @@
       "properties": {
         "username": { "type": "string" },
         "password": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "staff", "kasir"] },
+        "role": { "type": "string", "enum": ["admin", "staff", "kasir", "custom"] },
         "displayName": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "allowedPages": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["username", "password", "role"]
     },
@@ -81,6 +82,21 @@
         "phone": { "type": "string" },
         "footer": { "type": "string" }
       }
+    },
+    "activityLog": {
+      "title": "Activity Log",
+      "description": "A log of user actions for security monitoring.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "username", "displayName", "action", "type", "timestamp"]
     }
   },
   "firestore": {
@@ -88,6 +104,7 @@
     "/recipes": { "schema": "recipe", "description": "Collection of recipes" },
     "/shoppingLists": { "schema": "shoppingList", "description": "Collection of shopping lists" },
     "/users": { "schema": "user", "description": "Collection of app users" },
-    "/settings": { "schema": "receiptSettings", "description": "App settings including receipt config" }
+    "/settings": { "schema": "receiptSettings", "description": "App settings including receipt config" },
+    "/activity_logs": { "schema": "activityLog", "description": "Collection of user activity logs" }
   }
 }

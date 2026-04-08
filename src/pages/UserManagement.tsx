@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AppUser } from '../types';
 import { useAuth } from '../lib/auth';
-import { cn } from '../lib/utils';
+import { cn, logActivity } from '../lib/utils';
 import { Plus, Trash2, Edit2, UserPlus, Shield, Key, X, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -12,12 +12,31 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    username: string,
+    password: string,
+    displayName: string,
+    role: 'admin' | 'staff' | 'kasir' | 'custom',
+    allowedPages: string[]
+  }>({
     username: '',
     password: '',
     displayName: '',
-    role: 'staff' as 'admin' | 'staff' | 'kasir'
+    role: 'staff',
+    allowedPages: []
   });
+
+  const AVAILABLE_PAGES = [
+    { name: 'Dashboard', path: '/' },
+    { name: 'Resep', path: '/recipes' },
+    { name: 'Buat Resep', path: '/make-recipe' },
+    { name: 'Bahan Baku', path: '/ingredients' },
+    { name: 'Kalkulasi HPP', path: '/hpp' },
+    { name: 'Kasir', path: '/cashier' },
+    { name: 'Daftar Belanja', path: '/shopping-list' },
+    { name: 'User Management', path: '/users' },
+    { name: 'Log Aktivitas', path: '/activity-logs' },
+  ];
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
@@ -47,15 +66,27 @@ const UserManagement: React.FC = () => {
         await updateDoc(doc(db, 'users', editingUser.id), {
           ...formData
         });
+        if (currentUser) {
+          await logActivity(currentUser, 'Update User', `Mengubah data user: ${formData.displayName} (@${formData.username})`, 'info');
+        }
       } else {
         await addDoc(collection(db, 'users'), {
           ...formData,
           createdAt: new Date().toISOString()
         });
+        if (currentUser) {
+          await logActivity(currentUser, 'Tambah User', `Menambah user baru: ${formData.displayName} (@${formData.username})`, 'success');
+        }
       }
       setIsModalOpen(false);
       setEditingUser(null);
-      setFormData({ username: '', password: '', displayName: '', role: 'staff' });
+      setFormData({ 
+        username: '', 
+        password: '', 
+        displayName: '', 
+        role: 'staff',
+        allowedPages: []
+      });
     } catch (error) {
       console.error('Error saving user:', error);
     }
@@ -75,7 +106,11 @@ const UserManagement: React.FC = () => {
   const confirmDelete = async () => {
     if (userToDelete) {
       try {
+        const target = users.find(u => u.id === userToDelete);
         await deleteDoc(doc(db, 'users', userToDelete));
+        if (currentUser && target) {
+          await logActivity(currentUser, 'Hapus User', `Menghapus user: ${target.displayName} (@${target.username})`, 'warning');
+        }
         setIsDeleteModalOpen(false);
         setUserToDelete(null);
       } catch (error) {
@@ -94,7 +129,13 @@ const UserManagement: React.FC = () => {
         <button
           onClick={() => {
             setEditingUser(null);
-            setFormData({ username: '', password: '', displayName: '', role: 'staff' });
+            setFormData({ 
+              username: '', 
+              password: '', 
+              displayName: '', 
+              role: 'staff',
+              allowedPages: []
+            });
             setIsModalOpen(true);
           }}
           className="pro-button flex items-center justify-center gap-2"
@@ -129,6 +170,8 @@ const UserManagement: React.FC = () => {
                       "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border",
                       u.role === 'admin' 
                         ? "bg-primary-light text-primary border-pink-100" 
+                        : u.role === 'custom'
+                        ? "bg-amber-50 text-amber-600 border-amber-100"
                         : u.role === 'kasir'
                         ? "bg-blue-50 text-blue-500 border-blue-100"
                         : "bg-stone-100 text-stone-500 border-stone-200"
@@ -142,7 +185,13 @@ const UserManagement: React.FC = () => {
                 <button 
                   onClick={() => {
                     setEditingUser(u);
-                    setFormData({ username: u.username, password: u.password, displayName: u.displayName, role: u.role });
+                    setFormData({ 
+                      username: u.username, 
+                      password: u.password, 
+                      displayName: u.displayName, 
+                      role: u.role,
+                      allowedPages: u.allowedPages || []
+                    });
                     setIsModalOpen(true);
                   }}
                   className="p-2 text-stone-400 hover:text-primary hover:bg-primary-light rounded-xl transition-all"
@@ -166,7 +215,7 @@ const UserManagement: React.FC = () => {
               </div>
             )}
 
-            <div className="p-4 bg-stone-50/50 rounded-2xl border border-stone-100 space-y-2">
+            <div className="p-4 bg-stone-50/50 rounded-2xl border border-stone-100 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1">
                   <Key size={10} />
@@ -174,6 +223,21 @@ const UserManagement: React.FC = () => {
                 </span>
                 <span className="font-mono text-xs text-stone-600 font-bold">{u.password}</span>
               </div>
+              {u.role === 'custom' && u.allowedPages && u.allowedPages.length > 0 && (
+                <div className="pt-2 border-t border-stone-100">
+                  <p className="text-[8px] font-bold text-stone-400 uppercase tracking-widest mb-2">Akses Halaman:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {u.allowedPages.map(path => {
+                      const page = AVAILABLE_PAGES.find(p => p.path === path);
+                      return (
+                        <span key={path} className="px-1.5 py-0.5 bg-white border border-stone-100 rounded-md text-[8px] text-stone-600 font-medium">
+                          {page?.name || path}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         ))}
@@ -187,15 +251,15 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-stone-400/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="relative bg-white w-full max-w-md pro-card overflow-hidden"
+              className="relative bg-white w-full max-w-md pro-card overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-6 border-b border-stone-50 flex justify-between items-center bg-stone-50/50">
+              <div className="p-6 border-b border-stone-50 flex justify-between items-center bg-stone-50/50 shrink-0">
                 <h2 className="text-xl font-serif font-bold text-stone-800">
                   {editingUser ? 'Edit User' : 'Tambah User Baru'}
                 </h2>
@@ -203,7 +267,7 @@ const UserManagement: React.FC = () => {
                   <X size={20} />
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Nama Lengkap</label>
                   <input
@@ -239,9 +303,34 @@ const UserManagement: React.FC = () => {
                       <option value="staff">Staff</option>
                       <option value="kasir">Kasir</option>
                       <option value="admin">Admin</option>
+                      <option value="custom">Custom</option>
                     </select>
                   </div>
                 </div>
+
+                {formData.role === 'custom' && (
+                  <div className="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1 block mb-2">Izin Akses Halaman</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AVAILABLE_PAGES.map((page) => (
+                        <label key={page.path} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-stone-100 cursor-pointer hover:border-primary/30 transition-all">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedPages.includes(page.path)}
+                            onChange={(e) => {
+                              const newPages = e.target.checked
+                                ? [...formData.allowedPages, page.path]
+                                : formData.allowedPages.filter(p => p !== page.path);
+                              setFormData({ ...formData, allowedPages: newPages });
+                            }}
+                            className="w-4 h-4 rounded border-stone-300 text-primary focus:ring-primary"
+                          />
+                          <span className="text-[10px] font-bold text-stone-600 uppercase tracking-tight">{page.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest ml-1">Password</label>
                   <input
@@ -275,7 +364,7 @@ const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsDeleteModalOpen(false)}
-              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-stone-400/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}

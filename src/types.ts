@@ -3,9 +3,10 @@ export interface AppUser {
   uid?: string;
   username: string;
   password: string;
-  role: 'admin' | 'staff' | 'kasir';
+  role: 'admin' | 'staff' | 'kasir' | 'custom';
   displayName: string;
   createdAt: string;
+  allowedPages?: string[];
 }
 
 export interface Ingredient {
@@ -47,4 +48,15 @@ export interface ShoppingList {
   name: string;
   recipes: ShoppingListRecipe[];
   createdAt: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  action: string;
+  details: string;
+  timestamp: string;
+  type: 'info' | 'warning' | 'error' | 'success';
 }

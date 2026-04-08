@@ -45,26 +45,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
-  let navItems = [
+  const allNavItems = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Resep', path: '/recipes', icon: ChefHat },
+    { name: 'Bahan Baku', path: '/ingredients', icon: Scale },
     { name: 'Buat Resep', path: '/make-recipe', icon: UtensilsCrossed },
     { name: 'Kalkulasi HPP', path: '/hpp', icon: Calculator },
     { name: 'Kasir', path: '/cashier', icon: Banknote },
     { name: 'Daftar Belanja', path: '/shopping-list', icon: ShoppingCart },
+    { name: 'User Management', path: '/users', icon: Users },
+    { name: 'Log Aktivitas', path: '/activity-logs', icon: Shield },
   ];
 
+  let navItems = [];
   if (user?.role === 'admin') {
-    navItems.unshift({ name: 'Dashboard', path: '/', icon: LayoutDashboard });
-    navItems.splice(2, 0, { name: 'Bahan Baku', path: '/ingredients', icon: Scale });
-    navItems.push({ name: 'User Management', path: '/users', icon: Users });
+    navItems = allNavItems;
+  } else if (user?.role === 'custom') {
+    navItems = allNavItems.filter(item => user.allowedPages?.includes(item.path));
   } else if (user?.role === 'staff') {
-    navItems = [
-      { name: 'Buat Resep', path: '/make-recipe', icon: UtensilsCrossed }
-    ];
+    navItems = allNavItems.filter(item => item.path === '/make-recipe');
   } else if (user?.role === 'kasir') {
-    navItems = [
-      { name: 'Kasir', path: '/cashier', icon: Banknote }
-    ];
+    navItems = allNavItems.filter(item => item.path === '/cashier');
+  } else {
+    navItems = allNavItems.filter(item => 
+      ['/recipes', '/make-recipe', '/hpp', '/cashier', '/shopping-list'].includes(item.path)
+    );
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-paper"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>;
@@ -221,7 +226,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" 
+              className="md:hidden fixed inset-0 z-40 bg-stone-400/20 backdrop-blur-sm" 
               onClick={() => setIsMenuOpen(false)}
             >
               <motion.div 

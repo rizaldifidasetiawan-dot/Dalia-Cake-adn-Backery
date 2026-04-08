@@ -9,9 +9,9 @@
   --color-primary: #DB2777; /* Pink-600 */
   --color-primary-light: #FDF2F8; /* Pink-50 */
   --color-primary-dark: #9D174D; /* Pink-800 */
-  --color-paper: #FAFAF9; /* Stone-50 - cleaner than pink-white */
-  --color-ink: #1C1917; /* Stone-900 */
-  --color-line: #E7E5E4; /* Stone-200 */
+  --color-paper: #F9FAFB; /* Gray-50 - softer background */
+  --color-ink: #374151; /* Gray-700 - softer than black */
+  --color-line: #F3F4F6; /* Gray-100 - softer lines */
 }
 
 @layer base {

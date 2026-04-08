@@ -3,10 +3,12 @@ import { db } from '../lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Ingredient } from '../types';
 import { Plus, Search, Edit2, Trash2, X, Save } from 'lucide-react';
-import { formatCurrency, cn } from '../lib/utils';
+import { formatCurrency, cn, logActivity } from '../lib/utils';
+import { useAuth } from '../lib/auth';
 import { motion, AnimatePresence } from 'motion/react';
 
 const Ingredients: React.FC = () => {
+  const { user } = useAuth();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,11 +39,17 @@ const Ingredients: React.FC = () => {
           ...formData,
           updatedAt: new Date().toISOString()
         });
+        if (user) {
+          await logActivity(user, 'Update Bahan Baku', `Mengubah bahan baku: ${formData.name}`, 'info');
+        }
       } else {
         await addDoc(collection(db, 'ingredients'), {
           ...formData,
           updatedAt: new Date().toISOString()
         });
+        if (user) {
+          await logActivity(user, 'Tambah Bahan Baku', `Menambah bahan baku baru: ${formData.name}`, 'success');
+        }
       }
       setIsModalOpen(false);
       setEditingIng(null);
@@ -59,7 +67,11 @@ const Ingredients: React.FC = () => {
   const confirmDelete = async () => {
     if (ingToDelete) {
       try {
+        const ing = ingredients.find(i => i.id === ingToDelete);
         await deleteDoc(doc(db, 'ingredients', ingToDelete));
+        if (user && ing) {
+          await logActivity(user, 'Hapus Bahan Baku', `Menghapus bahan baku: ${ing.name}`, 'warning');
+        }
         setIsDeleteModalOpen(false);
         setIngToDelete(null);
       } catch (error) {
@@ -185,23 +197,23 @@ const Ingredients: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-stone-400/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-md pro-card p-8 shadow-2xl"
+              className="relative bg-white w-full max-w-md pro-card overflow-hidden flex flex-col max-h-[90vh] shadow-2xl"
             >
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex justify-between items-center p-8 border-b border-stone-50 bg-stone-50/50 shrink-0">
                 <h2 className="text-2xl font-serif font-bold text-stone-800">
                   {editingIng ? 'Edit Bahan Baku' : 'Tambah Bahan Baku'}
                 </h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-stone-50 rounded-full transition-colors text-stone-400">
+                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-xl transition-colors text-stone-400">
                   <X size={20} />
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Nama Bahan</label>
                   <input
@@ -298,7 +310,7 @@ const Ingredients: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsDeleteModalOpen(false)}
-              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-stone-400/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}

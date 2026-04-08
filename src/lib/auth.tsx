@@ -3,6 +3,7 @@ import { db, auth } from './firebase';
 import { collection, query, where, getDocs, addDoc, setDoc, doc, updateDoc } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { AppUser } from '../types';
+import { logActivity } from './utils';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -74,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setUser(userData);
         sessionStorage.setItem('dalia_user', JSON.stringify(userData));
+        await logActivity(userData, 'Login', 'Pengguna berhasil masuk ke aplikasi', 'success');
         console.log('Login successful.');
         return true;
       }
@@ -85,7 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (user) {
+      await logActivity(user, 'Logout', 'Pengguna keluar dari aplikasi', 'info');
+    }
     setUser(null);
     sessionStorage.removeItem('dalia_user');
   };

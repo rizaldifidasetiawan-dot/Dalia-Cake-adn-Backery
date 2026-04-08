@@ -255,24 +255,6 @@ const RecipeDetail: React.FC = () => {
                 <ChefHat className="text-primary" />
                 Bahan Baku
               </h2>
-              {isAdmin && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsQuickAddOpen(true)}
-                    className="text-[10px] font-bold text-blue-500 hover:text-blue-600 px-4 py-2 rounded-xl border border-blue-100 hover:bg-blue-50 transition-all uppercase tracking-widest"
-                  >
-                    <Plus size={14} className="inline mr-1" />
-                    Bahan Baru
-                  </button>
-                  <button
-                    onClick={handleAddIngredient}
-                    className="text-[10px] font-bold text-primary hover:text-primary-dark px-4 py-2 rounded-xl border border-pink-100 hover:bg-pink-50 transition-all uppercase tracking-widest"
-                  >
-                    <Plus size={14} className="inline mr-1" />
-                    Pilih Bahan
-                  </button>
-                </div>
-              )}
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-12 gap-4 px-4 text-[10px] font-bold text-stone-400 uppercase tracking-widest hidden md:grid">
@@ -367,6 +349,25 @@ const RecipeDetail: React.FC = () => {
                     <p className="text-stone-400 text-sm font-medium italic">Belum ada bahan baku ditambahkan.</p>
                   </div>
                 )}
+
+                {isAdmin && (
+                  <div className="flex flex-wrap gap-3 pt-6 border-t border-stone-50">
+                    <button
+                      onClick={() => setIsQuickAddOpen(true)}
+                      className="flex-1 md:flex-none text-[10px] font-bold text-blue-500 hover:text-blue-600 px-6 py-3 rounded-2xl border border-blue-100 hover:bg-blue-50 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Bahan Baru
+                    </button>
+                    <button
+                      onClick={handleAddIngredient}
+                      className="flex-1 md:flex-none text-[10px] font-bold text-primary hover:text-primary-dark px-6 py-3 rounded-2xl border border-pink-100 hover:bg-pink-50 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Pilih Bahan
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -386,7 +387,7 @@ const RecipeDetail: React.FC = () => {
 
         <div className="space-y-8">
           {/* Cost Summary */}
-          <section className="bg-stone-900 text-white p-8 rounded-[32px] shadow-2xl space-y-6 border border-stone-800 sticky top-8">
+          <section className="bg-white p-8 rounded-[32px] shadow-sm space-y-6 border border-line sticky top-8">
             <h2 className="text-xl font-serif font-bold text-primary flex items-center gap-2">
               <Calculator size={24} />
               Ringkasan Biaya
@@ -394,11 +395,11 @@ const RecipeDetail: React.FC = () => {
 
             <div className="space-y-6">
               <div className="space-y-4">
-                <div className="p-4 bg-stone-800 rounded-2xl border border-stone-700 space-y-4">
+                <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100 space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Biaya Lain-lain</span>
                     <div className="relative w-32">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-500">Rp</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">Rp</span>
                       <input
                         type="text"
                         inputMode="decimal"
@@ -416,25 +417,25 @@ const RecipeDetail: React.FC = () => {
                           return n;
                         })}
                         disabled={!isAdmin}
-                        className="w-full pl-8 pr-3 py-2 bg-stone-900 border border-stone-700 rounded-xl outline-none focus:border-primary font-mono text-sm text-right text-stone-200"
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-stone-100 rounded-xl outline-none focus:border-primary font-mono text-sm text-right text-stone-700"
                         placeholder="0"
                       />
                     </div>
                   </div>
-                  <p className="text-[9px] text-stone-500 italic font-medium uppercase tracking-wider">Kemasan, tenaga kerja, listrik, dll.</p>
+                  <p className="text-[9px] text-stone-400 italic font-medium uppercase tracking-wider">Kemasan, tenaga kerja, listrik, dll.</p>
                 </div>
 
-                <div className="pt-6 border-t border-stone-800">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1">Total HPP Batch</p>
+                <div className="pt-6 border-t border-stone-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">Total HPP Batch</p>
                   <p className="text-3xl font-mono font-bold text-primary tracking-tighter">{formatCurrency(hppTotal)}</p>
                   <div className="flex justify-between items-center mt-2 text-[10px] font-bold uppercase tracking-widest text-stone-400">
                     <span>HPP per {recipe.yieldUnit}</span>
-                    <span className="font-mono text-stone-200">{formatCurrency(hppPerUnit)}</span>
+                    <span className="font-mono text-stone-700">{formatCurrency(hppPerUnit)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-stone-800 space-y-4">
+              <div className="pt-6 border-t border-stone-100 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Markup Keuntungan</span>
                   <div className="relative w-24">
@@ -455,23 +456,23 @@ const RecipeDetail: React.FC = () => {
                         return n;
                       })}
                       disabled={!isAdmin}
-                      className="w-full pr-7 pl-3 py-2 bg-stone-800 border border-stone-700 rounded-xl outline-none focus:border-primary font-mono text-sm text-right text-stone-200"
+                      className="w-full pr-7 pl-3 py-2 bg-white border border-stone-100 rounded-xl outline-none focus:border-primary font-mono text-sm text-right text-stone-700"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-500">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">%</span>
                   </div>
                 </div>
                 
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Saran Harga Jual</p>
-                  <p className="text-3xl font-mono font-bold text-white tracking-tighter">{formatCurrency(suggestedPrice)}</p>
-                  <p className="text-[9px] text-stone-500 italic font-medium uppercase tracking-wider">Dibulatkan: {formatCurrency(Math.round(suggestedPrice / 100) * 100)}</p>
+                  <p className="text-3xl font-mono font-bold text-stone-800 tracking-tighter">{formatCurrency(suggestedPrice)}</p>
+                  <p className="text-[9px] text-stone-400 italic font-medium uppercase tracking-wider">Dibulatkan: {formatCurrency(Math.round(suggestedPrice / 100) * 100)}</p>
                 </div>
               </div>
 
-              <div className="p-4 bg-stone-800 rounded-2xl flex gap-3 items-start border border-stone-700">
+              <div className="p-4 bg-primary-light/30 rounded-2xl flex gap-3 items-start border border-primary-light">
                 <Info size={18} className="shrink-0 mt-0.5 text-primary" />
-                <p className="text-[10px] text-stone-400 leading-relaxed font-medium uppercase tracking-wider">
+                <p className="text-[10px] text-stone-500 leading-relaxed font-medium uppercase tracking-wider">
                   HPP dihitung berdasarkan total biaya bahan baku dan biaya tambahan lainnya dibagi dengan jumlah yield.
                 </p>
               </div>
@@ -489,7 +490,7 @@ const RecipeDetail: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsQuickAddOpen(false)}
-              className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-stone-400/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}

@@ -8,25 +8,38 @@ import RecipeDetail from './pages/RecipeDetail';
 import Ingredients from './pages/Ingredients';
 import ShoppingList from './pages/ShoppingList';
 import UserManagement from './pages/UserManagement';
+import ActivityLogs from './pages/ActivityLogs';
 import MakeRecipe from './pages/MakeRecipe';
 import HPP from './pages/HPP';
 import Cashier from './pages/Cashier';
 
 const ProtectedRoute = ({ 
   children, 
-  allowedRoles = ['admin', 'staff', 'kasir']
+  allowedRoles = ['admin', 'staff', 'kasir', 'custom'],
+  path
 }: { 
   children: React.ReactNode, 
-  allowedRoles?: ('admin' | 'staff' | 'kasir')[]
+  allowedRoles?: ('admin' | 'staff' | 'kasir' | 'custom')[],
+  path?: string
 }) => {
   const { user, loading } = useAuth();
 
   if (loading) return null;
   if (!user) return <Navigate to="/" />;
   
+  if (user.role === 'custom' && path) {
+    if (!user.allowedPages?.includes(path)) {
+      // Find first allowed page or go home
+      const firstPage = user.allowedPages?.[0] || "/";
+      return <Navigate to={firstPage} />;
+    }
+    return <>{children}</>;
+  }
+
   if (!allowedRoles.includes(user.role)) {
     if (user.role === 'staff') return <Navigate to="/make-recipe" />;
     if (user.role === 'kasir') return <Navigate to="/cashier" />;
+    if (user.role === 'custom') return <Navigate to={user.allowedPages?.[0] || "/"} />;
     return <Navigate to="/recipes" />;
   }
 
@@ -42,7 +55,7 @@ export default function App() {
             <Route 
               path="/" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/">
                   <Dashboard />
                 </ProtectedRoute>
               } 
@@ -50,7 +63,7 @@ export default function App() {
             <Route 
               path="/recipes" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/recipes">
                   <Recipes />
                 </ProtectedRoute>
               } 
@@ -58,7 +71,7 @@ export default function App() {
             <Route 
               path="/recipes/:id" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/recipes">
                   <RecipeDetail />
                 </ProtectedRoute>
               } 
@@ -66,7 +79,7 @@ export default function App() {
             <Route 
               path="/make-recipe" 
               element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                <ProtectedRoute allowedRoles={['admin', 'staff', 'custom']} path="/make-recipe">
                   <MakeRecipe />
                 </ProtectedRoute>
               } 
@@ -74,7 +87,7 @@ export default function App() {
             <Route 
               path="/hpp" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/hpp">
                   <HPP />
                 </ProtectedRoute>
               } 
@@ -82,7 +95,7 @@ export default function App() {
             <Route 
               path="/cashier" 
               element={
-                <ProtectedRoute allowedRoles={['admin', 'kasir']}>
+                <ProtectedRoute allowedRoles={['admin', 'kasir', 'custom']} path="/cashier">
                   <Cashier />
                 </ProtectedRoute>
               } 
@@ -90,7 +103,7 @@ export default function App() {
             <Route 
               path="/ingredients" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/ingredients">
                   <Ingredients />
                 </ProtectedRoute>
               } 
@@ -98,7 +111,7 @@ export default function App() {
             <Route 
               path="/shopping-list" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/shopping-list">
                   <ShoppingList />
                 </ProtectedRoute>
               } 
@@ -106,8 +119,16 @@ export default function App() {
             <Route 
               path="/users" 
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/users">
                   <UserManagement />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/activity-logs" 
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'custom']} path="/activity-logs">
+                  <ActivityLogs />
                 </ProtectedRoute>
               } 
             />

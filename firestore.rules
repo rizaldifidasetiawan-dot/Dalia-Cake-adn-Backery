@@ -18,10 +18,9 @@ service cloud.firestore {
 
     function isAdmin() {
       // Fallback to allow the owner email if they log in via Google
-      return (isAuthenticated() && 
+      return isAuthenticated() && 
         ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'admin') ||
-         (request.auth.token.email == "rizaldifidasetiawan@gmail.com" && request.auth.token.email_verified == true))) 
-         || true; // TEMPORARY: Allow all for now to fix blocking errors
+         (request.auth.token.email == "rizaldifidasetiawan@gmail.com" && request.auth.token.email_verified == true));
     }
 
     // ===============================================================
@@ -49,6 +48,10 @@ service cloud.firestore {
     }
 
     match /settings/{id} {
+      allow read, write: if true;
+    }
+
+    match /activity_logs/{id} {
       allow read, write: if true;
     }
   }

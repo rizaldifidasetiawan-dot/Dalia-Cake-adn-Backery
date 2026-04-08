@@ -352,12 +352,12 @@ const ShoppingList: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="bg-stone-900 text-white p-8 rounded-[32px] flex items-center justify-between shadow-xl border border-stone-800">
+                <div className="bg-white p-8 rounded-[32px] flex items-center justify-between shadow-sm border border-line">
                   <div>
-                    <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-1">Total Estimasi Belanja</p>
+                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Total Estimasi Belanja</p>
                     <p className="text-3xl md:text-4xl font-mono font-bold text-primary tracking-tighter">{formatCurrency(totalEstimated)}</p>
                   </div>
-                  <div className="w-16 h-16 bg-stone-800 rounded-2xl flex items-center justify-center text-primary shadow-inner border border-stone-700">
+                  <div className="w-16 h-16 bg-primary-light rounded-2xl flex items-center justify-center text-primary shadow-inner border border-pink-100">
                     <CheckCircle2 size={32} />
                   </div>
                 </div>

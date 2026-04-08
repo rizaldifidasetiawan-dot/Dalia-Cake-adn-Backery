@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
     <div className="space-y-10 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-4xl font-serif font-bold text-stone-800">Dashboard</h1>
+          <h1 className="text-4xl font-serif font-bold text-stone-700">Dashboard</h1>
           <p className="text-stone-500 text-sm font-medium">Selamat datang kembali di sistem manajemen <span className="text-primary font-bold">Dalia Cake & Bakery</span></p>
         </div>
         <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-line shadow-sm">
@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
 
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-serif font-bold text-stone-800">Akses Cepat</h2>
+          <h2 className="text-xl font-serif font-bold text-stone-700">Akses Cepat</h2>
           <div className="h-px flex-1 bg-stone-100 mx-6 hidden md:block" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -113,7 +113,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <section className="pro-card p-10">
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-2xl font-serif font-bold text-stone-800 flex items-center gap-3">
+            <h2 className="text-2xl font-serif font-bold text-stone-700 flex items-center gap-3">
               <div className="p-2 bg-primary-light text-primary rounded-xl">
                 <ChefHat size={20} />
               </div>
@@ -154,7 +154,7 @@ const Dashboard: React.FC = () => {
 
         <section className="pro-card p-10">
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-2xl font-serif font-bold text-stone-800 flex items-center gap-3">
+            <h2 className="text-2xl font-serif font-bold text-stone-700 flex items-center gap-3">
               <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                 <Scale size={20} />
               </div>
@@ -179,7 +179,7 @@ const Dashboard: React.FC = () => {
                         {ing.name[0]}
                       </div>
                       <div>
-                        <p className="font-bold text-stone-700 group-hover:text-stone-900 transition-colors">{ing.name}</p>
+                        <p className="font-bold text-stone-700 group-hover:text-stone-800 transition-colors">{ing.name}</p>
                         <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-1">Stok: {ing.stock || 0} {ing.unit}</p>
                       </div>
                     </div>
