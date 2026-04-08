@@ -97,6 +97,24 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "username", "displayName", "action", "type", "timestamp"]
+    },
+    "deviceSession": {
+      "title": "Device Session",
+      "description": "Tracking devices where the app is installed or used.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "deviceName": { "type": "string" },
+        "platform": { "type": "string" },
+        "userAgent": { "type": "string" },
+        "isInstalled": { "type": "boolean" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "revoked": { "type": "boolean" }
+      },
+      "required": ["userId", "deviceId", "revoked"]
     }
   },
   "firestore": {
@@ -105,6 +123,7 @@
     "/shoppingLists": { "schema": "shoppingList", "description": "Collection of shopping lists" },
     "/users": { "schema": "user", "description": "Collection of app users" },
     "/settings": { "schema": "receiptSettings", "description": "App settings including receipt config" },
-    "/activity_logs": { "schema": "activityLog", "description": "Collection of user activity logs" }
+    "/activity_logs": { "schema": "activityLog", "description": "Collection of user activity logs" },
+    "/device_sessions": { "schema": "deviceSession", "description": "Collection of device sessions" }
   }
 }

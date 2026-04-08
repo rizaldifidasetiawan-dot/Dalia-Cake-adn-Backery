@@ -60,3 +60,17 @@ export interface ActivityLog {
   timestamp: string;
   type: 'info' | 'warning' | 'error' | 'success';
 }
+
+export interface DeviceSession {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  deviceId: string;
+  deviceName: string;
+  platform: string;
+  userAgent: string;
+  isInstalled: boolean;
+  lastActive: string;
+  revoked: boolean;
+}

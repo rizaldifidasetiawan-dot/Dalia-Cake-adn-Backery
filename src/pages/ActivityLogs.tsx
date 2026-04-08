@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, query, orderBy, limit, getDocs, writeBatch, doc } from 'firebase/firestore';
-import { ActivityLog } from '../types';
+import { collection, onSnapshot, query, orderBy, limit, getDocs, writeBatch, doc, updateDoc } from 'firebase/firestore';
+import { ActivityLog, DeviceSession } from '../types';
 import { useAuth } from '../lib/auth';
-import { Shield, Clock, User, Info, AlertTriangle, CheckCircle, Search, Filter, Trash2, X } from 'lucide-react';
+import { logActivity } from '../lib/utils';
+import { Shield, Clock, User, Info, AlertTriangle, CheckCircle, Search, Filter, Trash2, X, Smartphone, Monitor, Tablet, Globe, Power } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 const ActivityLogs: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [devices, setDevices] = useState<DeviceSession[]>([]);
+  const [activeTab, setActiveTab] = useState<'logs' | 'devices'>('logs');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
@@ -17,13 +20,14 @@ const ActivityLogs: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const q = query(
+    // Logs subscription
+    const qLogs = query(
       collection(db, 'activity_logs'),
       orderBy('timestamp', 'desc'),
       limit(200)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubLogs = onSnapshot(qLogs, (snapshot) => {
       setLogs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ActivityLog)));
       setLoading(false);
     }, (error) => {
@@ -31,7 +35,16 @@ const ActivityLogs: React.FC = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Devices subscription
+    const qDevices = query(collection(db, 'device_sessions'), orderBy('lastActive', 'desc'));
+    const unsubDevices = onSnapshot(qDevices, (snapshot) => {
+      setDevices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DeviceSession)));
+    });
+
+    return () => {
+      unsubLogs();
+      unsubDevices();
+    };
   }, []);
 
   const getIcon = (type: string) => {
@@ -83,6 +96,40 @@ const ActivityLogs: React.FC = () => {
     return isSuspiciousAction || isError || isWarning;
   });
 
+  const getDeviceIcon = (deviceName: string) => {
+    const name = deviceName.toLowerCase();
+    if (name.includes('iphone') || name.includes('android')) return <Smartphone size={20} />;
+    if (name.includes('ipad') || name.includes('tablet')) return <Tablet size={20} />;
+    if (name.includes('windows') || name.includes('mac') || name.includes('pc')) return <Monitor size={20} />;
+    return <Globe size={20} />;
+  };
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    try {
+      await updateDoc(doc(db, 'device_sessions', deviceId), {
+        revoked: true,
+        lastActive: new Date().toISOString()
+      });
+      await logActivity(currentUser, 'Revoke Device', `Mencabut akses perangkat ID: ${deviceId}`, 'warning');
+    } catch (error) {
+      console.error("Error revoking device:", error);
+    }
+  };
+
+  const handleRestoreDevice = async (deviceId: string) => {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    try {
+      await updateDoc(doc(db, 'device_sessions', deviceId), {
+        revoked: false,
+        lastActive: new Date().toISOString()
+      });
+      await logActivity(currentUser, 'Restore Device', `Memulihkan akses perangkat ID: ${deviceId}`, 'success');
+    } catch (error) {
+      console.error("Error restoring device:", error);
+    }
+  };
+
   const filteredLogs = logs.filter(log => {
     const matchesSearch = 
       log.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -103,22 +150,44 @@ const ActivityLogs: React.FC = () => {
         <div>
           <h1 className="text-3xl font-serif font-bold text-primary flex items-center gap-3">
             <Shield size={32} />
-            Log Aktivitas
+            Log Aktivitas & Perangkat
           </h1>
-          <p className="text-stone-400">Monitor semua aktivitas pengguna untuk keamanan aplikasi.</p>
+          <p className="text-stone-400">Monitor aktivitas dan kelola perangkat yang terhubung.</p>
         </div>
-        {currentUser?.role === 'admin' && (
-          <button
-            onClick={() => setIsDeleteModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-red-50 text-red-500 rounded-2xl font-bold hover:bg-red-100 transition-all border border-red-100"
-          >
-            <Trash2 size={18} />
-            Hapus Semua Log
-          </button>
-        )}
+        <div className="flex gap-2">
+          <div className="bg-stone-100 p-1 rounded-2xl flex">
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={cn(
+                "px-6 py-2 rounded-xl text-xs font-bold transition-all",
+                activeTab === 'logs' ? "bg-white text-primary shadow-sm" : "text-stone-400 hover:text-stone-600"
+              )}
+            >
+              Log Aktivitas
+            </button>
+            <button
+              onClick={() => setActiveTab('devices')}
+              className={cn(
+                "px-6 py-2 rounded-xl text-xs font-bold transition-all",
+                activeTab === 'devices' ? "bg-white text-primary shadow-sm" : "text-stone-400 hover:text-stone-600"
+              )}
+            >
+              Perangkat ({devices.length})
+            </button>
+          </div>
+          {currentUser?.role === 'admin' && activeTab === 'logs' && (
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-red-50 text-red-500 rounded-2xl font-bold hover:bg-red-100 transition-all border border-red-100"
+            >
+              <Trash2 size={18} />
+              Hapus Semua Log
+            </button>
+          )}
+        </div>
       </header>
 
-      {suspiciousActivities.length > 0 && (
+      {activeTab === 'logs' && suspiciousActivities.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -141,7 +210,9 @@ const ActivityLogs: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 space-y-6">
+        {activeTab === 'logs' ? (
+          <>
+            <div className="md:col-span-1 space-y-6">
           <section className="pro-card p-6 space-y-4">
             <h2 className="text-lg font-bold text-stone-700 flex items-center gap-2">
               <Filter size={20} className="text-primary" />
@@ -273,6 +344,96 @@ const ActivityLogs: React.FC = () => {
             </div>
           </section>
         </div>
+      </>
+    ) : (
+      <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {devices.map((device) => (
+              <motion.div
+                layout
+                key={device.id}
+                className={cn(
+                  "pro-card p-6 relative overflow-hidden group",
+                  device.revoked && "opacity-60 grayscale"
+                )}
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm",
+                      device.revoked ? "bg-stone-100 text-stone-400 border-stone-200" : "bg-primary-light text-primary border-pink-100"
+                    )}>
+                      {getDeviceIcon(device.deviceName)}
+                    </div>
+                    <div>
+                      <h3 className="font-serif font-bold text-lg text-stone-800">{device.deviceName}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{device.platform}</span>
+                        {device.isInstalled && (
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[8px] font-bold uppercase tracking-widest">
+                            Terinstall (PWA)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={() => device.revoked ? handleRestoreDevice(device.id) : handleRevokeDevice(device.id)}
+                      className={cn(
+                        "p-2 rounded-xl transition-all",
+                        device.revoked 
+                          ? "text-emerald-500 hover:bg-emerald-50" 
+                          : "text-red-500 hover:bg-red-50"
+                      )}
+                      title={device.revoked ? "Pulihkan Akses" : "Cabut Akses (Uninstall)"}
+                    >
+                      {device.revoked ? <CheckCircle size={20} /> : <Power size={20} />}
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Pengguna</span>
+                      <span className="text-xs font-bold text-stone-700">{device.displayName} (@{device.username})</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Aktif Terakhir</span>
+                      <span className="text-xs font-mono text-stone-500">
+                        {new Date(device.lastActive).toLocaleString('id-ID', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-[8px] text-stone-300 font-mono break-all line-clamp-1">
+                    ID: {device.deviceId}
+                  </div>
+                </div>
+
+                {device.revoked && (
+                  <div className="absolute inset-0 bg-stone-900/5 flex items-center justify-center backdrop-blur-[1px]">
+                    <div className="bg-white px-4 py-2 rounded-full shadow-xl border border-stone-100 flex items-center gap-2">
+                      <AlertTriangle size={14} className="text-red-500" />
+                      <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Akses Dicabut</span>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+            {devices.length === 0 && (
+              <div className="col-span-full p-20 text-center pro-card border-dashed border-stone-200">
+                <Smartphone size={48} className="mx-auto text-stone-200 mb-4" />
+                <p className="text-stone-400 font-serif italic">Belum ada perangkat yang terdaftar.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <AnimatePresence>
         {isDeleteModalOpen && (
