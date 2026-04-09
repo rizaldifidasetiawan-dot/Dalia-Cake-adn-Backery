@@ -4,7 +4,7 @@ import { collection, onSnapshot, query, orderBy, limit, getDocs, writeBatch, doc
 import { ActivityLog, DeviceSession } from '../types';
 import { useAuth } from '../lib/auth';
 import { logActivity, handleFirestoreError, OperationType } from '../lib/utils';
-import { Shield, Clock, User, Info, AlertTriangle, CheckCircle, Search, Filter, Trash2, X, Smartphone, Monitor, Tablet, Globe, Power } from 'lucide-react';
+import { Shield, Clock, User, Info, AlertTriangle, CheckCircle, Search, Filter, Trash2, X, Smartphone, Monitor, Tablet, Globe, Power, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -19,6 +19,8 @@ const ActivityLogs: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isWarningDismissed, setIsWarningDismissed] = useState(false);
+  const [showRevoked, setShowRevoked] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -153,6 +155,20 @@ const ActivityLogs: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const filteredDevices = devices.filter(device => {
+    const isOnline = new Date(now).getTime() - new Date(device.lastActive).getTime() < 180000;
+    const isRevoked = device.revoked;
+
+    // If device is revoked, only show if showRevoked is true
+    if (isRevoked) return showRevoked;
+
+    // If device is offline, only show if showOffline is true
+    if (!isOnline) return showOffline;
+
+    // Otherwise it's online and not revoked, show it
+    return true;
+  });
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>;
 
   return (
@@ -194,6 +210,34 @@ const ActivityLogs: React.FC = () => {
               <Trash2 size={18} />
               Hapus Semua Log
             </button>
+          )}
+          {currentUser?.role === 'admin' && activeTab === 'devices' && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowOffline(!showOffline)}
+                className={cn(
+                  "flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all border",
+                  showOffline 
+                    ? "bg-blue-600 text-white border-blue-600" 
+                    : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                )}
+              >
+                {showOffline ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showOffline ? "Sembunyikan Offline" : "Lihat Offline"}
+              </button>
+              <button
+                onClick={() => setShowRevoked(!showRevoked)}
+                className={cn(
+                  "flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all border",
+                  showRevoked 
+                    ? "bg-stone-800 text-white border-stone-800" 
+                    : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                )}
+              >
+                {showRevoked ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showRevoked ? "Sembunyikan Dicabut" : "Lihat Dicabut"}
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -378,7 +422,7 @@ const ActivityLogs: React.FC = () => {
       </>
     ) : (
       <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {devices.map((device) => (
+            {filteredDevices.map((device) => (
               <motion.div
                 layout
                 key={device.id}

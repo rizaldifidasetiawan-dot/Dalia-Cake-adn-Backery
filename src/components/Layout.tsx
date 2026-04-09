@@ -46,8 +46,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await login(username, password);
-    if (!success) {
+    const result = await login(username, password);
+    if (result === true) {
+      // Success
+    } else if (result === 'REVOKED') {
+      setError('Akses perangkat ini telah dicabut oleh Admin. Silakan hubungi Admin untuk mengizinkan kembali.');
+    } else {
       setError('Username atau Password salah!');
     }
   };

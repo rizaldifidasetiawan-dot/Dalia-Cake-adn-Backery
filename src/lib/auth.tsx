@@ -39,25 +39,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let deviceName = 'Perangkat Tidak Dikenal';
     let platformName = platform;
 
-    if (/android/i.test(userAgent)) {
-      deviceName = 'Android Device';
+    // Try to extract more specific device info from User Agent
+    const ua = userAgent;
+    
+    if (/android/i.test(ua)) {
       platformName = 'Android';
-    } else if (/iPad|iPhone|iPod/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
-      if (/iPad/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      // Extract Android model - more robust regex
+      // Handles: "Android 10; SM-G973F", "Android 12; Redmi Note 11", etc.
+      const match = ua.match(/Android\s+[^;]+;\s+([^;Build/)]+)/i);
+      if (match && match[1] && match[1].trim().length > 1) {
+        deviceName = `Android: ${match[1].trim()}`;
+      } else {
+        // Fallback for other Android UA formats
+        const altMatch = ua.match(/Android\s+[0-9.]+;\s*([^;)]+)/i);
+        if (altMatch && altMatch[1]) {
+          deviceName = `Android: ${altMatch[1].trim()}`;
+        } else {
+          deviceName = 'Android Device';
+        }
+      }
+    } else if (/iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      platformName = 'iOS/iPadOS';
+      if (/iPad/.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
         deviceName = 'iPad';
       } else {
         deviceName = 'iPhone';
       }
-      platformName = 'iOS/iPadOS';
-    } else if (/Windows/i.test(userAgent)) {
-      deviceName = 'Windows PC';
+    } else if (/Windows/i.test(ua)) {
       platformName = 'Windows';
-    } else if (/Macintosh/i.test(userAgent)) {
-      deviceName = 'MacBook/iMac';
+      if (/Windows NT 10.0/i.test(ua)) deviceName = 'Windows 10/11 PC';
+      else if (/Windows NT 6.3/i.test(ua)) deviceName = 'Windows 8.1 PC';
+      else if (/Windows NT 6.2/i.test(ua)) deviceName = 'Windows 8 PC';
+      else if (/Windows NT 6.1/i.test(ua)) deviceName = 'Windows 7 PC';
+      else deviceName = 'Windows PC';
+    } else if (/Macintosh/i.test(ua)) {
       platformName = 'macOS';
-    } else if (/Linux/i.test(userAgent)) {
-      deviceName = 'Linux PC';
+      deviceName = 'MacBook/iMac';
+    } else if (/Linux/i.test(ua)) {
       platformName = 'Linux';
+      deviceName = 'Linux PC';
+    }
+
+    // Modern browsers support User-Agent Client Hints which are much more accurate
+    const uaData = (navigator as any).userAgentData;
+    if (uaData && uaData.getHighEntropyValues) {
+      try {
+        const hints = await uaData.getHighEntropyValues(['model', 'platform', 'platformVersion']);
+        if (hints.model) {
+          // If we got a real model name, use it
+          const pName = hints.platform || platformName;
+          deviceName = `${pName}: ${hints.model}`;
+          if (hints.platform) platformName = hints.platform;
+        }
+      } catch (e) {
+        // Silently fail and keep the UA-based name
+      }
     }
 
     try {
@@ -67,6 +103,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         where('userId', '==', userData.id)
       );
       const snapshot = await getDocs(q);
+      
+      // Check if this device is already registered and revoked
+      if (!snapshot.empty) {
+        const existingData = snapshot.docs[0].data();
+        if (existingData.revoked) {
+          throw new Error('REVOKED');
+        }
+      }
       
       const sessionData = {
         userId: userData.id,
@@ -103,6 +147,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return unsub;
     } catch (error) {
+      if (error instanceof Error && error.message === 'REVOKED') {
+        throw error; // Re-throw to be handled in login
+      }
       console.error('Error registering device:', error);
       handleFirestoreError(error, OperationType.WRITE, 'device_sessions');
       return () => {};
@@ -210,13 +257,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...userDoc.data()
         } as unknown as AppUser;
         
-        setUser(userData);
-        sessionStorage.setItem('dalia_user', JSON.stringify(userData));
-        const unsub = await registerDevice(userData);
-        unsubRef.current = unsub;
-        await logActivity(userData, 'Login', 'Pengguna berhasil masuk ke aplikasi', 'success');
-        console.log('Login successful.');
-        return true;
+        try {
+          const unsub = await registerDevice(userData);
+          setUser(userData);
+          sessionStorage.setItem('dalia_user', JSON.stringify(userData));
+          unsubRef.current = unsub;
+          await logActivity(userData, 'Login', 'Pengguna berhasil masuk ke aplikasi', 'success');
+          console.log('Login successful.');
+          return true;
+        } catch (error) {
+          if (error instanceof Error && error.message === 'REVOKED') {
+            console.log('Login blocked: device is revoked.');
+            return 'REVOKED' as any; // Special return value
+          }
+          throw error;
+        }
       }
       console.log('Login failed: user not found or password incorrect.');
       return false;
