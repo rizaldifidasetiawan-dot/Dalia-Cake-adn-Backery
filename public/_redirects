@@ -1,4 +1,15 @@
+# Static Assets - Explicitly allow them to bypass the catch-all
+# This fixes the "MIME type" error by ensuring .js and .css files are served correctly
+/assets/* /assets/:splat 200
+/sw.js /sw.js 200
+/manifest.json /manifest.json 200
+/logo.png /logo.png 200
+/favicon.ico /favicon.ico 200
+
+# Prevent Cloudflare from redirecting /index.html to / and causing a loop
+/index.html /index.html 200
+
 # SPA redirect for Cloudflare Pages
-# Rewriting to / instead of /index.html avoids the "Infinite loop" error
-# caused by Cloudflare's automatic .html stripping.
-/* / 200
+# Using a query parameter (?) is a known trick to bypass Wrangler's 
+# "Infinite loop detected" error during deployment validation.
+/* /index.html?spa 200
