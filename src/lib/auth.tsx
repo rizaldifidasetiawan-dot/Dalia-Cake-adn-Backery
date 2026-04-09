@@ -21,12 +21,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sessionDocIdRef = React.useRef<string | null>(null);
 
   const getDeviceId = () => {
-    let id = localStorage.getItem('dalia_device_id');
-    if (!id) {
-      id = Math.random().toString(36).substring(2) + Date.now().toString(36);
-      localStorage.setItem('dalia_device_id', id);
+    try {
+      let id = localStorage.getItem('dalia_device_id');
+      if (!id) {
+        id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        localStorage.setItem('dalia_device_id', id);
+      }
+      return id;
+    } catch (e) {
+      console.warn('LocalStorage is not available, using session-based device ID');
+      let sessionId = sessionStorage.getItem('dalia_temp_device_id');
+      if (!sessionId) {
+        sessionId = 'temp-' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+        sessionStorage.setItem('dalia_temp_device_id', sessionId);
+      }
+      return sessionId;
     }
-    return id;
   };
 
   const registerDevice = async (userData: AppUser) => {
@@ -202,17 +212,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Auth initialization error:', error);
       } finally {
-        // Check session storage for session
-        const savedUser = sessionStorage.getItem('dalia_user');
-        if (savedUser) {
-          const userData = JSON.parse(savedUser);
-          const isRevoked = await checkDeviceRevoked(userData);
-          if (!isRevoked) {
-            setUser(userData);
-            registerDevice(userData).then(unsub => {
-              unsubRef.current = unsub;
-            });
+        try {
+          // Check session storage for session
+          const savedUser = sessionStorage.getItem('dalia_user');
+          if (savedUser) {
+            const userData = JSON.parse(savedUser);
+            if (userData && userData.id) {
+              const isRevoked = await checkDeviceRevoked(userData);
+              if (!isRevoked) {
+                setUser(userData);
+                registerDevice(userData).then(unsub => {
+                  unsubRef.current = unsub;
+                }).catch(err => {
+                  console.error('Failed to register device on init:', err);
+                });
+              }
+            }
           }
+        } catch (e) {
+          console.error('Error restoring session:', e);
+          sessionStorage.removeItem('dalia_user');
         }
         setLoading(false);
         console.log('Auth init finished.');
