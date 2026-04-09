@@ -1,0 +1,4 @@
+# SPA redirect for Cloudflare Pages
+# Rewriting to / instead of /index.html avoids the "Infinite loop" error
+# caused by Cloudflare's automatic .html stripping.
+/* / 200
