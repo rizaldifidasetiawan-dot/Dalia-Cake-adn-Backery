@@ -33,6 +33,18 @@ const Ingredients: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for duplicate name (case-insensitive)
+    const isDuplicate = ingredients.some(ing => 
+      ing.name.toLowerCase() === formData.name.toLowerCase() && 
+      (!editingIng || ing.id !== editingIng.id)
+    );
+
+    if (isDuplicate) {
+      alert('Bahan baku dengan nama tersebut sudah ada.');
+      return;
+    }
+
     try {
       if (editingIng) {
         await updateDoc(doc(db, 'ingredients', editingIng.id), {

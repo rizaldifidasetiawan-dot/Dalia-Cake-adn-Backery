@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { onConnectionChange } from '../lib/firebase';
 import Logo from './Logo';
 import { 
   LayoutDashboard, 
@@ -17,7 +18,8 @@ import {
   Shield,
   UtensilsCrossed,
   Calculator,
-  Banknote
+  Banknote,
+  WifiOff
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,8 +35,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isConnected, setIsConnected] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    return onConnectionChange(setIsConnected);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +88,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary opacity-5 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary opacity-5 rounded-full blur-[100px]"></div>
         
+        {!isConnected && (
+          <motion.div 
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            className="fixed top-0 left-0 right-0 z-[200] bg-amber-500 text-white px-4 py-2 flex items-center justify-center gap-2 text-xs font-bold shadow-lg"
+          >
+            <WifiOff size={14} />
+            Koneksi ke database terputus. Beberapa fitur mungkin tidak tersedia.
+          </motion.div>
+        )}
+
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -206,6 +224,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Mobile Header */}
       <div className="flex-1 flex flex-col min-w-0">
+        {!isConnected && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            className="bg-amber-500 text-white px-4 py-2 flex items-center justify-center gap-2 text-[10px] font-bold shrink-0"
+          >
+            <WifiOff size={12} />
+            Mode Offline: Gagal terhubung ke database. Periksa koneksi internet atau konfigurasi Firebase Anda.
+          </motion.div>
+        )}
         <header className="md:hidden bg-white border-b border-pink-100 p-5 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center gap-3">
             <Logo size={48} className="text-primary" />

@@ -54,5 +54,9 @@ service cloud.firestore {
     match /activity_logs/{id} {
       allow read, write: if true;
     }
+
+    match /device_sessions/{id} {
+      allow read, write: if true;
+    }
   }
 }

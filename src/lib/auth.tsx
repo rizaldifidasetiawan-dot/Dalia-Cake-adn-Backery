@@ -3,7 +3,7 @@ import { db, auth } from './firebase';
 import { collection, query, where, getDocs, addDoc, setDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { AppUser } from '../types';
-import { logActivity } from './utils';
+import { logActivity, handleFirestoreError, OperationType } from './utils';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -18,6 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const unsubRef = React.useRef<(() => void) | null>(null);
+  const sessionDocIdRef = React.useRef<string | null>(null);
 
   const getDeviceId = () => {
     let id = localStorage.getItem('dalia_device_id');
@@ -34,13 +35,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userAgent = navigator.userAgent;
     const platform = (navigator as any).platform || 'Unknown';
     
-    // Simple device name detection
+    // Improved device detection logic
     let deviceName = 'Perangkat Tidak Dikenal';
-    if (/iPhone/.test(userAgent)) deviceName = 'iPhone';
-    else if (/iPad/.test(userAgent)) deviceName = 'iPad';
-    else if (/Android/.test(userAgent)) deviceName = 'Android Device';
-    else if (/Windows/.test(userAgent)) deviceName = 'Windows PC';
-    else if (/Macintosh/.test(userAgent)) deviceName = 'MacBook/iMac';
+    let platformName = platform;
+
+    if (/android/i.test(userAgent)) {
+      deviceName = 'Android Device';
+      platformName = 'Android';
+    } else if (/iPad|iPhone|iPod/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      if (/iPad/.test(userAgent) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        deviceName = 'iPad';
+      } else {
+        deviceName = 'iPhone';
+      }
+      platformName = 'iOS/iPadOS';
+    } else if (/Windows/i.test(userAgent)) {
+      deviceName = 'Windows PC';
+      platformName = 'Windows';
+    } else if (/Macintosh/i.test(userAgent)) {
+      deviceName = 'MacBook/iMac';
+      platformName = 'macOS';
+    } else if (/Linux/i.test(userAgent)) {
+      deviceName = 'Linux PC';
+      platformName = 'Linux';
+    }
 
     try {
       const q = query(
@@ -56,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName: userData.displayName,
         deviceId,
         deviceName,
-        platform,
+        platform: platformName,
         userAgent,
         isInstalled,
         lastActive: new Date().toISOString(),
@@ -67,10 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (snapshot.empty) {
         const newDoc = await addDoc(collection(db, 'device_sessions'), sessionData);
         docId = newDoc.id;
+        // Log new device registration
+        await logActivity(userData, 'Register Device', `Perangkat baru terdaftar: ${deviceName} (${platformName})`, 'info');
       } else {
         docId = snapshot.docs[0].id;
         await updateDoc(doc(db, 'device_sessions', docId), sessionData);
       }
+      
+      sessionDocIdRef.current = docId;
 
       // Listen for real-time revocation
       const unsub = onSnapshot(doc(db, 'device_sessions', docId), (docSnap) => {
@@ -82,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return unsub;
     } catch (error) {
       console.error('Error registering device:', error);
+      handleFirestoreError(error, OperationType.WRITE, 'device_sessions');
       return () => {};
     }
   };
@@ -103,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } catch (error) {
       console.error('Error checking device revocation:', error);
+      handleFirestoreError(error, OperationType.GET, 'device_sessions');
       return false;
     }
   };
@@ -150,6 +174,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     init();
   }, []);
 
+  // Heartbeat to keep session alive
+  useEffect(() => {
+    if (!user || !sessionDocIdRef.current) return;
+
+    const interval = setInterval(async () => {
+      try {
+        await updateDoc(doc(db, 'device_sessions', sessionDocIdRef.current!), {
+          lastActive: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Heartbeat error:', error);
+      }
+    }, 60000); // Every 1 minute
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   const login = async (username: string, password: string) => {
     console.log('Login attempt for:', username);
     try {
@@ -193,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubRef.current();
       unsubRef.current = null;
     }
+    sessionDocIdRef.current = null;
     setUser(null);
     sessionStorage.removeItem('dalia_user');
   };

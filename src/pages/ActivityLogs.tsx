@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit, getDocs, writeBatch, doc, updateDoc } from 'firebase/firestore';
 import { ActivityLog, DeviceSession } from '../types';
 import { useAuth } from '../lib/auth';
-import { logActivity } from '../lib/utils';
+import { logActivity, handleFirestoreError, OperationType } from '../lib/utils';
 import { Shield, Clock, User, Info, AlertTriangle, CheckCircle, Search, Filter, Trash2, X, Smartphone, Monitor, Tablet, Globe, Power } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,6 +18,13 @@ const ActivityLogs: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isWarningDismissed, setIsWarningDismissed] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000); // Update every 30s for online status
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     // Logs subscription
@@ -32,6 +39,7 @@ const ActivityLogs: React.FC = () => {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching logs:", error);
+      handleFirestoreError(error, OperationType.LIST, 'activity_logs');
       setLoading(false);
     });
 
@@ -39,6 +47,9 @@ const ActivityLogs: React.FC = () => {
     const qDevices = query(collection(db, 'device_sessions'), orderBy('lastActive', 'desc'));
     const unsubDevices = onSnapshot(qDevices, (snapshot) => {
       setDevices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DeviceSession)));
+    }, (error) => {
+      console.error("Error fetching devices:", error);
+      handleFirestoreError(error, OperationType.LIST, 'device_sessions');
     });
 
     return () => {
@@ -187,25 +198,41 @@ const ActivityLogs: React.FC = () => {
         </div>
       </header>
 
-      {activeTab === 'logs' && suspiciousActivities.length > 0 && (
+      {activeTab === 'logs' && suspiciousActivities.length > 0 && !isWarningDismissed && (
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-amber-50 border border-amber-200 p-6 rounded-[24px] flex items-start gap-4"
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-amber-50 border border-amber-200 p-6 rounded-[24px] flex items-start gap-4 relative group"
         >
           <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
             <AlertTriangle size={24} />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-lg font-bold text-amber-800">Aktivitas Mencurigakan Terdeteksi</h3>
             <p className="text-amber-700 text-sm mb-3">Terdapat {suspiciousActivities.length} aktivitas yang memerlukan perhatian Anda (Error, Warning, atau Penghapusan Data).</p>
-            <button 
-              onClick={() => setFilterType('warning')}
-              className="text-xs font-bold text-amber-800 underline hover:text-amber-900"
-            >
-              Lihat Aktivitas Peringatan
-            </button>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setFilterType('warning')}
+                className="text-xs font-bold text-amber-800 underline hover:text-amber-900"
+              >
+                Lihat Aktivitas Peringatan
+              </button>
+              <button 
+                onClick={() => setIsWarningDismissed(true)}
+                className="text-xs font-bold text-stone-400 hover:text-stone-600 transition-colors"
+              >
+                Abaikan Peringatan
+              </button>
+            </div>
           </div>
+          <button 
+            onClick={() => setIsWarningDismissed(true)}
+            className="absolute top-4 right-4 p-2 text-amber-400 hover:text-amber-600 transition-colors"
+            title="Tutup"
+          >
+            <X size={20} />
+          </button>
         </motion.div>
       )}
 
@@ -266,6 +293,10 @@ const ActivityLogs: React.FC = () => {
                 <span className="font-bold text-stone-700">
                   {logs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length}
                 </span>
+              </div>
+              <div className="flex justify-between text-xs pt-2 border-t border-stone-100 mt-2">
+                <span className="text-stone-500">Total Perangkat</span>
+                <span className="font-bold text-primary">{devices.length}</span>
               </div>
             </div>
           </section>
@@ -373,22 +404,37 @@ const ActivityLogs: React.FC = () => {
                             Terinstall (PWA)
                           </span>
                         )}
+                        {!device.revoked && (new Date(now).getTime() - new Date(device.lastActive).getTime() < 180000) && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[8px] font-bold uppercase tracking-widest animate-pulse">
+                            <span className="w-1 h-1 bg-blue-600 rounded-full"></span>
+                            Online
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                   {currentUser?.role === 'admin' && (
-                    <button
-                      onClick={() => device.revoked ? handleRestoreDevice(device.id) : handleRevokeDevice(device.id)}
-                      className={cn(
-                        "p-2 rounded-xl transition-all",
-                        device.revoked 
-                          ? "text-emerald-500 hover:bg-emerald-50" 
-                          : "text-red-500 hover:bg-red-50"
+                    <div className="flex gap-2 relative z-10">
+                      {device.revoked ? (
+                        <button
+                          onClick={() => handleRestoreDevice(device.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all text-[10px] font-bold uppercase tracking-widest border border-emerald-100 shadow-sm"
+                          title="Izinkan Akses Kembali"
+                        >
+                          <CheckCircle size={14} />
+                          Izinkan
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleRevokeDevice(device.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all text-[10px] font-bold uppercase tracking-widest border border-red-100"
+                          title="Cabut Akses Perangkat"
+                        >
+                          <Power size={14} />
+                          Cabut
+                        </button>
                       )}
-                      title={device.revoked ? "Pulihkan Akses" : "Cabut Akses (Uninstall)"}
-                    >
-                      {device.revoked ? <CheckCircle size={20} /> : <Power size={20} />}
-                    </button>
+                    </div>
                   )}
                 </div>
 
@@ -401,12 +447,13 @@ const ActivityLogs: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Aktif Terakhir</span>
                       <span className="text-xs font-mono text-stone-500">
-                        {new Date(device.lastActive).toLocaleString('id-ID', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {(() => {
+                          const diff = new Date(now).getTime() - new Date(device.lastActive).getTime();
+                          if (diff < 60000) return 'Baru saja';
+                          if (diff < 3600000) return `${Math.floor(diff / 60000)}m lalu`;
+                          if (diff < 86400000) return `${Math.floor(diff / 3600000)}j lalu`;
+                          return new Date(device.lastActive).toLocaleDateString('id-ID');
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -417,7 +464,7 @@ const ActivityLogs: React.FC = () => {
                 </div>
 
                 {device.revoked && (
-                  <div className="absolute inset-0 bg-stone-900/5 flex items-center justify-center backdrop-blur-[1px]">
+                  <div className="absolute inset-0 bg-stone-900/5 flex items-center justify-center backdrop-blur-[1px] pointer-events-none">
                     <div className="bg-white px-4 py-2 rounded-full shadow-xl border border-stone-100 flex items-center gap-2">
                       <AlertTriangle size={14} className="text-red-500" />
                       <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Akses Dicabut</span>

@@ -27,6 +27,7 @@ const RecipeDetail: React.FC = () => {
   });
 
   const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddData, setQuickAddData] = useState({ name: '', unit: 'gr', price: 0, baseQuantity: 1 });
@@ -43,6 +44,16 @@ const RecipeDetail: React.FC = () => {
       }
     );
 
+    const unsubRecipes = onSnapshot(
+      collection(db, 'recipes'),
+      (snapshot) => {
+        setAllRecipes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recipe)));
+      },
+      (error) => {
+        console.error("Recipes snapshot error in RecipeDetail:", error);
+      }
+    );
+
     if (!isNew) {
       const fetchRecipe = async () => {
         const docRef = doc(db, 'recipes', id!);
@@ -55,7 +66,10 @@ const RecipeDetail: React.FC = () => {
       fetchRecipe();
     }
 
-    return () => unsubIng();
+    return () => {
+      unsubIng();
+      unsubRecipes();
+    };
   }, [id, isNew]);
 
   const handleAddIngredient = () => {
@@ -67,6 +81,17 @@ const RecipeDetail: React.FC = () => {
 
   const handleQuickAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check for duplicate name (case-insensitive)
+    const isDuplicate = allIngredients.some(ing => 
+      ing.name.toLowerCase() === quickAddData.name.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      alert('Bahan baku dengan nama tersebut sudah ada.');
+      return;
+    }
+
     try {
       const docRef = await addDoc(collection(db, 'ingredients'), {
         ...quickAddData,
@@ -128,6 +153,17 @@ const RecipeDetail: React.FC = () => {
   const handleSave = async () => {
     if (!recipe.name || (recipe.ingredients || []).length === 0) {
       alert('Nama resep dan bahan baku harus diisi.');
+      return;
+    }
+
+    // Check for duplicate name (case-insensitive)
+    const isDuplicate = allRecipes.some(r => 
+      r.name.toLowerCase() === recipe.name?.toLowerCase() && 
+      (isNew || r.id !== id)
+    );
+
+    if (isDuplicate) {
+      alert('Resep dengan nama tersebut sudah ada.');
       return;
     }
 
