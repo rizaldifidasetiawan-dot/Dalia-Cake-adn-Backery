@@ -5,9 +5,32 @@ import './index.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
-      console.log('Service worker registration failed: ', err);
-    });
+    // Add a small delay to ensure SW registration doesn't compete with initial asset loading
+    setTimeout(() => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          // Check for updates
+          registration.onupdatefound = () => {
+            const installingWorker = registration.installing;
+            if (installingWorker) {
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed') {
+                  if (navigator.serviceWorker.controller) {
+                    // New content is available; please refresh.
+                    console.log('New content is available; please refresh.');
+                  } else {
+                    // Content is cached for offline use.
+                    console.log('Content is cached for offline use.');
+                  }
+                }
+              };
+            }
+          };
+        })
+        .catch(err => {
+          console.log('Service worker registration failed: ', err);
+        });
+    }, 2000);
   });
 }
 
